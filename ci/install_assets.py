@@ -57,7 +57,7 @@ def main() -> None:
     if not cairo.exists():
         url = "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf"
         data = fetch(url)
-        if len(data) < 10000 or data[:4] not in (b"\\x00\\x01\\x00\\x00", b"OTTO"):
+        if len(data) < 10000 or data[:4] not in (bytes((0, 1, 0, 0)), b"OTTO"):
             raise RuntimeError("Cairo Arabic TTF did not download correctly")
         cairo.write_bytes(data)
     license_out = ROOT / "assets" / "licenses"
