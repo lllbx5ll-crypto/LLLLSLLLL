@@ -1,0 +1,2 @@
+# Asset policy
+All present visible geometry is generated procedurally at runtime (original). The project includes an original SVG launcher icon and procedural sound placeholders. Detailed 3D models, real-world product packaging and field-recorded audio are **not** included yet. Add original or appropriately licensed GLB/OGG assets to this folder, with credits and licenses, during later iterations.

@@ -1,0 +1,34 @@
+; Engine configuration file.
+; Merchants City 3D - Al-Qmishi
+
+config_version=5
+
+[application]
+
+config/name="مدينة التجار | Merchants City"
+config/description="Arabic 3D open-world life and trading simulation by Al-Qmishi"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[display]
+
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="canvas_items"
+window/handheld/orientation=1
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/default_filters/use_nearest_mipmap_filter=false
+environment/defaults/default_clear_color=Color(0.62, 0.79, 0.92, 1)
+
+[physics]
+
+3d/default_gravity=18.0
+
+[application]
+
+run/low_processor_mode=false
