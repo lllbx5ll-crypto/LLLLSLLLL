@@ -46,7 +46,7 @@
       "hatchback-sports",
       "ambulance",
       "firetruck",
-      "pickup",
+      "sedan-sports",
       "sedan",
       "taxi"
     ],
@@ -68,12 +68,12 @@
       "bread",
       "burger",
       "carrot",
-      "cherry",
+      "pineapple",
       "donut",
       "egg",
       "lemon",
       "orange",
-      "milk",
+      "bottle-oil",
       "pizza",
       "watermelon"
     ],
