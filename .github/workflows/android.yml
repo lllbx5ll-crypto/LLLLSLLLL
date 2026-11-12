@@ -85,6 +85,24 @@ jobs:
           godot --headless --path . --script tests/smoke_test.gd
           godot --headless --path . --script tests/world_smoke.gd
 
+      - name: Capture visual smoke preview (optional)
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p build
+          if command -v xvfb-run >/dev/null 2>&1; then
+            timeout 40s xvfb-run -a godot --path . --rendering-driver opengl3 --script tests/capture_preview.gd
+          fi
+
+      - name: Upload game screenshot preview
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Merchants-City-Visual-Preview
+          path: build/preview.png
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Set Godot Android paths
         run: |
           godot --headless --path . --editor --script ci/configure_android.gd
