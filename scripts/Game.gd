@@ -7,6 +7,13 @@ var city: Node3D
 var avatar: CharacterBody3D
 var camera: Camera3D
 var sound: Node
+var customer_system: Node
+var orbit_yaw: float = 0.0
+var orbit_pitch: float = 0.32
+var orbit_distance: float = 8.5
+var look_finger: int = -1
+var mouse_orbit: bool = false
+var footstep_distance: float = 0.0
 var ui_root: Control
 var hud: Label
 var product_info: Label
@@ -42,12 +49,16 @@ func _ready() -> void:
 	camera.far = 195.0
 	camera.current = true
 	add_child(camera)
-	camera.position = avatar.position + Vector3(0, 5.7, 9.2)
+	camera.position = avatar.position + Vector3(0, 4.5, 8.5)
 	camera.look_at(avatar.position + Vector3(0, 1.0, 0))
+	customer_system = preload("res://scripts/CustomerSystem.gd").new()
+	customer_system.configure(economy, city)
+	add_child(customer_system)
 	sound = preload("res://scripts/SoundFX.gd").new()
 	add_child(sound)
 	economy.changed.connect(_on_economy_changed)
 	economy.event_posted.connect(_announce)
+	customer_system.customer_news.connect(_announce)
 	_create_interface()
 	_on_economy_changed()
 	_start_credits()
@@ -66,17 +77,56 @@ func _process(delta: float) -> void:
 		var event_panel := ui_root.get_node_or_null("EventNoticePanel")
 		if event_panel != null:
 			event_panel.visible = notice_duration > 0.0
-	var target: Vector3 = avatar.position + Vector3(0, 5.7, 9.2)
-	camera.position = camera.position.lerp(target, minf(1.0, delta * 5.0))
-	camera.look_at(avatar.position + Vector3(0, 1.1, 0))
+	# Orbit camera: swipe the right side of the screen, or hold right mouse button.
+	var orbit_offset := Vector3(
+		sin(orbit_yaw) * cos(orbit_pitch) * orbit_distance,
+		sin(orbit_pitch) * orbit_distance + 1.5,
+		cos(orbit_yaw) * cos(orbit_pitch) * orbit_distance
+	)
+	var target: Vector3 = avatar.global_position + orbit_offset
+	camera.global_position = camera.global_position.lerp(target, minf(1.0, delta * 7.5))
+	camera.look_at(avatar.global_position + Vector3(0, 1.45, 0))
+	avatar.camera_yaw = orbit_yaw
 	var move := Vector2(float(direction_keys["right"]) - float(direction_keys["left"]), float(direction_keys["down"]) - float(direction_keys["up"]))
 	avatar.touch_move = move.normalized()
-	if avatar.position.distance_to(previous_walk_pos) > 0.03:
-		walking_sfx_timer += delta
-		if walking_sfx_timer >= 0.52:
-			sound.effect("step")
-			walking_sfx_timer = 0.0
+	# Footsteps are triggered by distance travelled, not frame rate.
+	var moved: float = Vector2(avatar.position.x - previous_walk_pos.x, avatar.position.z - previous_walk_pos.z).length()
+	footstep_distance += moved
+	if moved > 0.015 and footstep_distance > 1.85:
+		sound.effect("step")
+		footstep_distance = 0.0
+	if moved < 0.015:
+		footstep_distance = minf(footstep_distance, 1.85)
 	previous_walk_pos = avatar.position
+
+func _input(event: InputEvent) -> void:
+	if (trading_overlay != null and trading_overlay.visible) or (pop_overlay != null and pop_overlay.visible) or (help_overlay != null and help_overlay.visible):
+		return
+	var screen: Vector2 = get_viewport().get_visible_rect().size
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed and look_finger == -1 and touch.position.x > screen.x * 0.27 and touch.position.y > screen.y * 0.22 and touch.position.y < screen.y * 0.77:
+			look_finger = touch.index
+		if not touch.pressed and touch.index == look_finger:
+			look_finger = -1
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == look_finger:
+			_rotate_camera(drag.screen_relative)
+	elif event is InputEventMouseButton:
+		var mouse_button := event as InputEventMouseButton
+		if mouse_button.button_index == MOUSE_BUTTON_RIGHT:
+			mouse_orbit = mouse_button.pressed
+		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_UP:
+			orbit_distance = maxf(3.5, orbit_distance - 0.65)
+		elif mouse_button.pressed and mouse_button.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			orbit_distance = minf(13.0, orbit_distance + 0.65)
+	elif event is InputEventMouseMotion and mouse_orbit:
+		_rotate_camera((event as InputEventMouseMotion).relative)
+
+func _rotate_camera(delta_pixels: Vector2) -> void:
+	orbit_yaw = wrapf(orbit_yaw - delta_pixels.x * 0.0052, -PI, PI)
+	orbit_pitch = clampf(orbit_pitch - delta_pixels.y * 0.0048, -0.12, 1.13)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -224,6 +274,16 @@ func _create_interface() -> void:
 	_create_trade_popup()
 	_create_sign_popup()
 	_create_help_popup()
+	var help_hint := Label.new()
+	help_hint.text = "اسحب يمين الشاشة لتدوير الكاميرا ↑ ↓ ↔"
+	help_hint.anchor_left = 0.285
+	help_hint.anchor_right = 0.75
+	help_hint.anchor_top = 0.81
+	help_hint.anchor_bottom = 0.845
+	help_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	help_hint.add_theme_font_size_override("font_size", 16)
+	help_hint.add_theme_color_override("font_color", Color(0.99, 0.93, 0.77))
+	ui_root.add_child(help_hint)
 
 func _create_trade_popup() -> void:
 	trading_overlay = ColorRect.new()
@@ -297,7 +357,7 @@ func _create_trade_popup() -> void:
 	action_scroll.add_child(action_grid)
 	_menu_action(action_grid, "العمل لدى التاجر", "work", Color(0.15, 0.36, 0.46))
 	_menu_action(action_grid, "شراء ٣ منتجات", "buy", Color(0.13, 0.35, 0.29))
-	_menu_action(action_grid, "بيع منتج", "sell", Color(0.15, 0.44, 0.29))
+	_menu_action(action_grid, "محاسبة الزبون", "sell", Color(0.15, 0.44, 0.29))
 	_menu_action(action_grid, "شراء بسطة: 250", "stall", Color(0.46, 0.32, 0.15))
 	_menu_action(action_grid, "فتح محل: 1750", "shop", Color(0.46, 0.27, 0.17))
 	_menu_action(action_grid, "توصيل الطلبات", "deliver", Color(0.31, 0.26, 0.43))
@@ -422,7 +482,7 @@ func _create_help_popup() -> void:
 	var vertical := VBoxContainer.new()
 	card.add_child(vertical)
 	var information := Label.new()
-	information.text = "مدينة التجار | Merchants City\nالمطور: Al-Qmishi\n\n١. اذهب إلى صاحب العمل (الأزرق) واكسب أجرك.\n٢. اشترِ بضاعة من المورد (الأخضر).\n٣. افتح البسطة بـ250 عملة ثم ابدأ البيع.\n٤. نافس الأسعار واكسب 1750 لفتح محل.\n٥. خصص اللوحة بالعربية، وظّف عاملًا، واحفظ التقدم.\n\nالحركة: الأسهم أو WASD / أزرار اللمس.\nالتفاعل: E أو زر تفاعل. جميع الأموال داخل اللعبة خيالية."
+	information.text = "مدينة التجار | Merchants City\nالمطور: Al-Qmishi\n\n١. اذهب إلى صاحب العمل (الأزرق) واكسب أجرك.\n٢. اشترِ بضاعة من المورد (الأخضر).\n٣. افتح البسطة بـ250 عملة ثم ابدأ البيع.\n٤. نافس الأسعار واكسب 1750 لفتح محل.\n٥. خصص اللوحة بالعربية، وظّف عاملًا، واحفظ التقدم.\n\nالحركة: الأسهم أو WASD / أزرار اللمس.\nالتفاعل: E أو زر تفاعل. للمحاسبة انتظر وصول الزبائن للكاشير.\nالكاميرا: اسحب على يمين الشاشة أو زر الفأرة الأيمن؛ عجلة الفأرة للتقريب.\nجميع الأموال داخل اللعبة خيالية."
 	information.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	information.add_theme_font_size_override("font_size", 22)
 	vertical.add_child(information)
@@ -476,7 +536,8 @@ func _update_hud() -> void:
 	hud.text = "%s     ◈  %d عملة     ★  %d     ☀  اليوم %d" % [economy.stage_name(), economy.money, economy.reputation, economy.day]
 	var loc: String = city.nearest_location(avatar.position, 9.5)
 	var loc_text: String = city.LOCATION_LABELS.get(loc, "استكشف المدينة")
-	location_info.text = "%s  |  %s" % [str(loc_text), economy.objective()]
+	var queue_details: String = " | زبائن المحاسبة: %d" % customer_system.waiting_count() if customer_system != null else ""
+	location_info.text = "%s  |  %s%s" % [str(loc_text), economy.objective(), queue_details]
 	var item: Dictionary = economy.product(selected_product)
 	product_info.text = "%s  |  مخزونك: %d\nسعر المورد: %d  |  سعرك: %d  |  سعر المنافس: %d" % [
 		str(item["name"]), economy.stock_for(selected_product), economy.buy_cost(selected_product),
@@ -504,7 +565,7 @@ func _action(action: String) -> void:
 		"buy":
 			message = economy.buy_stock(selected_product, 3) if _can_use("supplier") else "اذهب إلى المورد الأخضر في السوق."
 		"sell":
-			message = economy.sell_stock(selected_product, 1) if (_can_use("stall") or _can_use("shop")) else "اقترب من بسطة البيع أو محلك."
+			message = customer_system.checkout() if (_can_use("stall") or _can_use("shop")) else "اقترب من الكاشير في محلك أو من بسطتك."
 		"stall":
 			message = economy.buy_stall() if _can_use("stall") else "اذهب إلى موقع البسطة الحمراء."
 		"shop":
@@ -542,7 +603,7 @@ func _action(action: String) -> void:
 				"stall":
 					_action("sell" if economy.stall_owned else "stall")
 				"shop":
-					_action("shop" if not economy.shop_owned else "sign")
+					_action("shop" if not economy.shop_owned else "sell")
 				"rival":
 					_action("rival")
 				"delivery":

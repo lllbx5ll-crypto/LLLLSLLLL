@@ -22,6 +22,10 @@ func _run() -> void:
 		push_error("Player did not initialize")
 		quit(1)
 		return
+	if game.get_node_or_null("CustomerSystem") == null:
+		push_error("Customers system missing")
+		quit(1)
+		return
 	if game.get_node_or_null("Traffic") == null:
 		push_error("City traffic did not initialize")
 		quit(1)
