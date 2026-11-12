@@ -9,6 +9,7 @@ config/name="مدينة التجار | Merchants City"
 config/description="Arabic 3D open-world life and trading simulation by Al-Qmishi"
 run/main_scene="res://scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
+run/low_processor_mode=false
 config/icon="res://icon.svg"
 
 [display]
@@ -29,6 +30,3 @@ environment/defaults/default_clear_color=Color(0.62, 0.79, 0.92, 1)
 
 3d/default_gravity=18.0
 
-[application]
-
-run/low_processor_mode=false
