@@ -46,6 +46,8 @@ func _process(delta: float) -> void:
 		delta_pos.y = 0.0
 		if delta_pos.length() < 0.12:
 			customer["segment"] = segment + 1
+			if segment == 1 and economy.shop_owned and not customer["leaving"]:
+				_carry_product(customer)
 			if int(customer["segment"]) >= route.size():
 				if customer["leaving"]:
 					customers.erase(customer)
@@ -99,9 +101,9 @@ func _spawn() -> void:
 	var route: Array[Vector3] = []
 	if at_shop:
 		route = [
-			store_center + Vector3(0, 0, 5.6), # enter through front door
-			store_center + Vector3(0.5, 0, -0.9), # choose product at a shelf
-			store_center + Vector3(-1.8, 0, 1.75) # walk up to cashier
+			store_center + Vector3(0, 0, 7.5), # enter through front door
+			store_center + Vector3(1.2, 0, -2.1), # choose product at a shelf
+			store_center + Vector3(-3.0, 0, 3.0 + float(customers.size() % 3) * 0.72) # cashier queue
 		]
 	else:
 		route = [store_center + Vector3(0, 0, 2.3)]
@@ -112,6 +114,31 @@ func _spawn() -> void:
 	})
 	customer_news.emit("زبون جديد يقترب من %s، توجه إلى المحاسبة." % ("محلك" if at_shop else "بسطتك"))
 	queue_changed.emit()
+
+func _carry_product(customer: Dictionary) -> void:
+	# Once a shopper reaches the shelf, attach a visible grocery item in their hand.
+	var index: int = int(customer["product_index"])
+	var item_id: String = str(economy.product(index)["id"])
+	var shapes := {
+		"bread": "bread", "water": "bottle-oil", "apples": "apple",
+		"rice": "bread", "milk": "bottle-oil", "coffee": "bottle-oil",
+		"phones": "bottle-oil", "shirts": "bag", "tools": "bottle-oil",
+		"dates": "apple", "juice": "bottle-oil", "eggs": "egg"
+	}
+	var model_id: String = shapes.get(item_id, "apple")
+	var path: String = "res://assets/models/food-kit/" + model_id + ".glb"
+	if not ResourceLoader.exists(path):
+		return
+	var model: Resource = load(path)
+	if not model is PackedScene:
+		return
+	var actor: Node3D = customer["actor"]
+	var prop: Node3D = (model as PackedScene).instantiate()
+	prop.name = "SelectedProduct"
+	actor.add_child(prop)
+	prop.position = Vector3(0.38, 1.10, -0.27)
+	preload("res://scripts/ModelFit.gd").product(prop, 0.30)
+	customer["held_product"] = prop
 
 func waiting_count() -> int:
 	var count: int = 0
@@ -139,8 +166,10 @@ func checkout() -> String:
 			return result
 		customer["ready"] = false
 		customer["leaving"] = true
+		if customer.has("held_product") and is_instance_valid(customer["held_product"]):
+			(customer["held_product"] as Node).queue_free()
 		var entrance: Vector3 = city.LOCATIONS["shop"] if economy.shop_owned else city.LOCATIONS["stall"]
-		customer["route"] = [entrance + Vector3(1, 0, 6), entrance + Vector3(9, 0, 10)]
+		customer["route"] = [entrance + Vector3(1, 0, 7.5), entrance + Vector3(9, 0, 10)]
 		customer["segment"] = 0
 		queue_changed.emit()
 		return "المحاسبة تمت! الزبون استلم %s. %s" % [economy.product(idx)["name"], result]

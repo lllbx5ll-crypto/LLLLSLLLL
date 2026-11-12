@@ -31,6 +31,7 @@ var business_sign: Label3D
 var street_sign: Label3D
 var stall_canvas: Node3D
 var shop_front: Node3D
+var shop_roof: MeshInstance3D
 var wandering_people: Array[Dictionary] = []
 var time: float = 0.0
 var building_count: int = 0
@@ -238,24 +239,24 @@ func _create_market() -> void:
 	shop_front.position = LOCATIONS["shop"]
 	add_child(shop_front)
 	# The shop is an enterable interior, not a solid cube.
-	_box("Store tiled floor", Vector3(0, 0.14, 0), Vector3(8.2, 0.2, 7.2), Color(0.78, 0.75, 0.66), false, shop_front)
-	_box("Rear wall", Vector3(0, 2.8, -3.5), Vector3(8.2, 5.6, 0.36), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Left side wall", Vector3(-4.1, 2.8, 0), Vector3(0.36, 5.6, 7.2), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Right side wall", Vector3(4.1, 2.8, 0), Vector3(0.36, 5.6, 7.2), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Roof", Vector3(0, 5.65, 0), Vector3(8.4, 0.36, 7.4), Color(0.60, 0.57, 0.50), true, shop_front)
-	_box("Front left", Vector3(-3.1, 2.8, 3.5), Vector3(2.2, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Front right", Vector3(3.1, 2.8, 3.5), Vector3(2.2, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Door lintel", Vector3(0, 4.9, 3.5), Vector3(4.1, 1.4, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Shop board", Vector3(0, 5.17, 3.74), Vector3(7.7, 1.0, 0.2), Color(0.08, 0.33, 0.29), false, shop_front)
-	business_sign = _sign("محل للإيجار", Vector3(0, 5.2, 3.9), shop_front, 0.008)
-	street_sign = _sign("شارع السوق", Vector3(0, 4.32, 3.9), shop_front, 0.004)
+	_box("Store tiled floor", Vector3(0, 0.14, 0), Vector3(11.6, 0.2, 11.1), Color(0.78, 0.75, 0.66), false, shop_front)
+	_box("Rear wall", Vector3(0, 2.8, -5.5), Vector3(11.6, 5.6, 0.36), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Left side wall", Vector3(-5.75, 2.8, 0), Vector3(0.36, 5.6, 11.1), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Right side wall", Vector3(5.75, 2.8, 0), Vector3(0.36, 5.6, 11.1), Color(0.81, 0.79, 0.72), true, shop_front)
+	shop_roof = _box("Roof", Vector3(0, 5.65, 0), Vector3(11.9, 0.36, 11.4), Color(0.60, 0.57, 0.50), true, shop_front)
+	_box("Front left", Vector3(-4.1, 2.8, 5.5), Vector3(3.0, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Front right", Vector3(4.1, 2.8, 5.5), Vector3(3.0, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Door lintel", Vector3(0, 4.9, 5.5), Vector3(5.4, 1.4, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Shop board", Vector3(0, 5.17, 5.75), Vector3(11.1, 1.0, 0.2), Color(0.08, 0.33, 0.29), false, shop_front)
+	business_sign = _sign("محل للإيجار", Vector3(0, 5.2, 5.93), shop_front, 0.008)
+	street_sign = _sign("شارع السوق", Vector3(0, 4.32, 5.93), shop_front, 0.004)
 	# A register with a clear customer-facing checkout lane.
-	_box("Checkout register", Vector3(-2.9, 0.80, 1.8), Vector3(1.25, 1.6, 2.3), Color(0.37, 0.27, 0.20), false, shop_front)
-	_box("Cash register", Vector3(-2.9, 1.68, 1.3), Vector3(0.70, 0.26, 0.55), Color(0.12, 0.16, 0.21), false, shop_front)
-	_box("Register screen", Vector3(-2.9, 1.97, 1.12), Vector3(0.50, 0.47, 0.08), Color(0.17, 0.42, 0.42), false, shop_front)
-	for shelf_index in range(4):
-		var shelf_x: float = -1.6 + float(shelf_index % 2) * 3.4
-		var shelf_z: float = -1.8 + float(shelf_index / 2) * 1.6
+	_box("Checkout register", Vector3(-3.55, 0.80, 3.0), Vector3(1.25, 1.6, 2.3), Color(0.37, 0.27, 0.20), false, shop_front)
+	_box("Cash register", Vector3(-3.55, 1.68, 2.5), Vector3(0.70, 0.26, 0.55), Color(0.12, 0.16, 0.21), false, shop_front)
+	_box("Register screen", Vector3(-3.55, 1.97, 2.32), Vector3(0.50, 0.47, 0.08), Color(0.17, 0.42, 0.42), false, shop_front)
+	for shelf_index in range(6):
+		var shelf_x: float = -3.2 + float(shelf_index % 3) * 3.2
+		var shelf_z: float = -3.4 + float(floori(shelf_index / 3.0)) * 2.5
 		_box("Grocery shelf backing", Vector3(shelf_x, 1.32, shelf_z), Vector3(1.65, 2.65, 0.58), Color(0.57, 0.50, 0.42), false, shop_front)
 		for row_index in range(3):
 			_box("Shelf tier", Vector3(shelf_x, 0.45 + float(row_index) * 0.80, shelf_z + 0.34), Vector3(1.72, 0.09, 0.76), Color(0.67, 0.58, 0.47), false, shop_front)
@@ -265,6 +266,16 @@ func _create_market() -> void:
 				var food_id: String = food_ids[(shelf_index * 5 + row_index * 4 + column_index) % food_ids.size()]
 				if _licensed_model("food-kit/" + food_id, item_pos, Vector3(0.28, 0.27, 0.28), shop_front) == null:
 					_box("Grocery package", item_pos, Vector3(0.25, 0.29, 0.26), PALETTE[(shelf_index + row_index + column_index) % PALETTE.size()], false, shop_front)
+	# Soft overhead lights help the shop interior feel like a real place.
+	for light_i in [-1, 1]:
+		var lamp := OmniLight3D.new()
+		lamp.name = "InteriorLight"
+		lamp.position = Vector3(float(light_i) * 2.5, 4.7, -0.7)
+		lamp.light_color = Color(1.0, 0.93, 0.81)
+		lamp.light_energy = 0.72
+		lamp.omni_range = 9.0
+		lamp.shadow_enabled = false
+		shop_front.add_child(lamp)
 	_build_vendor(LOCATIONS["rival"], "المنافس - راقب الأسعار", Color(0.62, 0.26, 0.27))
 	_build_vendor(LOCATIONS["delivery"], "التوصيل - مهمات", Color(0.45, 0.32, 0.66))
 	_sign("سوق المدينة", Vector3(0, 2.8, 0), null, 0.004)
@@ -324,6 +335,12 @@ func _create_street_lamps() -> void:
 			var at := Vector3(float(x) * 24.0 + 5, 0, float(z) * 24.0 + 5)
 			_cylinder("Lamp pole", at + Vector3(0, 3.1, 0), 0.13, 6.2, Color(0.31, 0.34, 0.35))
 			_sphere("Lamp light", at + Vector3(0, 6.2, 0), 0.3, Color(1.0, 0.86, 0.54))
+
+func update_shop_roof(player_position: Vector3) -> void:
+	if shop_roof == null:
+		return
+	var delta_pos: Vector3 = player_position - LOCATIONS["shop"]
+	shop_roof.visible = not (absf(delta_pos.x) < 5.6 and absf(delta_pos.z) < 5.4)
 
 func set_ownership(has_stall: bool, has_shop: bool, shop_name: String, road_name: String) -> void:
 	if business_sign != null:

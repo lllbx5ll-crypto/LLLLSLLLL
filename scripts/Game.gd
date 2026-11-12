@@ -87,6 +87,7 @@ func _process(delta: float) -> void:
 	camera.global_position = camera.global_position.lerp(target, minf(1.0, delta * 7.5))
 	camera.look_at(avatar.global_position + Vector3(0, 1.45, 0))
 	avatar.camera_yaw = orbit_yaw
+	city.update_shop_roof(avatar.global_position)
 	var move := Vector2(float(direction_keys["right"]) - float(direction_keys["left"]), float(direction_keys["down"]) - float(direction_keys["up"]))
 	avatar.touch_move = move.normalized()
 	# Footsteps are triggered by distance travelled, not frame rate.
