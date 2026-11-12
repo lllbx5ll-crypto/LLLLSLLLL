@@ -113,7 +113,7 @@ func _sign(text_value: String, at: Vector3, parent: Node3D = null, scale_value: 
 	if ResourceLoader.exists("res://assets/fonts/NotoNaskhArabic.ttf"):
 		label.font = load("res://assets/fonts/NotoNaskhArabic.ttf")
 	label.modulate = Color(1.0, 0.96, 0.76)
-	label.outline_size = 8
+	label.outline_size = 5
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	label.position = at
 	if parent == null:
@@ -156,34 +156,26 @@ func _licensed_model(relative_path: String, at: Vector3, requested_size: Vector3
 	var path: String = "res://assets/models/" + relative_path + ".glb"
 	if not ResourceLoader.exists(path):
 		return null
-	var resource: Resource = load(path)
-	if not resource is PackedScene:
+	var scene: Resource = load(path)
+	if not scene is PackedScene:
 		return null
-	var instance: Node3D = (resource as PackedScene).instantiate()
+	var instance: Node3D = (scene as PackedScene).instantiate()
 	instance.name = "CC0_" + relative_path.get_file()
 	if parent == null:
 		add_child(instance)
 	else:
 		parent.add_child(instance)
 	instance.position = at
-	var size: Vector3 = _asset_bounds_size(instance)
-	instance.scale = Vector3(
-		requested_size.x / maxf(size.x, 0.1),
-		requested_size.y / maxf(size.y, 0.1),
-		requested_size.z / maxf(size.z, 0.1)
-	)
+	var fitter = preload("res://scripts/ModelFit.gd")
+	if relative_path.begins_with("mini-characters"):
+		fitter.person(instance, 1.72)
+	elif relative_path.begins_with("car-kit"):
+		fitter.vehicle(instance, 4.15)
+	elif relative_path.begins_with("city-kit"):
+		fitter.building(instance, minf(requested_size.x, requested_size.z), requested_size.y)
+	else:
+		fitter.product(instance, maxf(maxf(requested_size.x, requested_size.y), requested_size.z))
 	return instance
-
-func _asset_bounds_size(node: Node) -> Vector3:
-	var result := Vector3(0.0, 0.0, 0.0)
-	if node is MeshInstance3D:
-		var part: MeshInstance3D = node as MeshInstance3D
-		if part.mesh != null:
-			result = part.mesh.get_aabb().size
-	for child in node.get_children():
-		var child_size: Vector3 = _asset_bounds_size(child)
-		result = Vector3(maxf(result.x, child_size.x), maxf(result.y, child_size.y), maxf(result.z, child_size.z))
-	return result
 
 func _create_blocks() -> void:
 	var rng := RandomNumberGenerator.new()
@@ -254,19 +246,22 @@ func _create_market() -> void:
 	_box("Shop board", Vector3(0, 5.17, 3.74), Vector3(7.7, 1.0, 0.2), Color(0.08, 0.33, 0.29), false, shop_front)
 	business_sign = _sign("محل للإيجار", Vector3(0, 5.2, 3.9), shop_front, 0.008)
 	street_sign = _sign("شارع السوق", Vector3(0, 4.32, 3.9), shop_front, 0.004)
-	_box("Checkout counter", Vector3(-2.8, 0.8, 1.4), Vector3(1.2, 1.6, 2.1), Color(0.50, 0.29, 0.15), false, shop_front)
-	for shelf_index in range(2):
-		var shelf_x: float = -1.0 + float(shelf_index) * 3.1
-		_box("Product shelf", Vector3(shelf_x, 1.45, -1.2), Vector3(1.7, 2.9, 0.55), Color(0.60, 0.43, 0.27), false, shop_front)
+	# A register with a clear customer-facing checkout lane.
+	_box("Checkout register", Vector3(-2.9, 0.80, 1.8), Vector3(1.25, 1.6, 2.3), Color(0.37, 0.27, 0.20), false, shop_front)
+	_box("Cash register", Vector3(-2.9, 1.68, 1.3), Vector3(0.70, 0.26, 0.55), Color(0.12, 0.16, 0.21), false, shop_front)
+	_box("Register screen", Vector3(-2.9, 1.97, 1.12), Vector3(0.50, 0.47, 0.08), Color(0.17, 0.42, 0.42), false, shop_front)
+	for shelf_index in range(4):
+		var shelf_x: float = -1.6 + float(shelf_index % 2) * 3.4
+		var shelf_z: float = -1.8 + float(shelf_index / 2) * 1.6
+		_box("Grocery shelf backing", Vector3(shelf_x, 1.32, shelf_z), Vector3(1.65, 2.65, 0.58), Color(0.57, 0.50, 0.42), false, shop_front)
 		for row_index in range(3):
-			for column_index in range(3):
-				var tint: Color = PALETTE[(shelf_index * 3 + row_index + column_index) % PALETTE.size()]
-				var shelf_item: Vector3 = Vector3(shelf_x - 0.55 + float(column_index) * 0.52, 0.68 + float(row_index) * 0.87, -0.82)
-				var food_choices := ["apple", "bread", "banana", "orange", "lemon", "egg", "carrot"]
-				var food_id: String = food_choices[(shelf_index * 6 + row_index * 3 + column_index) % food_choices.size()]
-				var food_model: Node3D = _licensed_model("food-kit/" + food_id, shelf_item, Vector3(0.28, 0.38, 0.28), shop_front)
-				if food_model == null:
-					_box("Shop product package", shelf_item, Vector3(0.38, 0.62, 0.30), tint, false, shop_front)
+			_box("Shelf tier", Vector3(shelf_x, 0.45 + float(row_index) * 0.80, shelf_z + 0.34), Vector3(1.72, 0.09, 0.76), Color(0.67, 0.58, 0.47), false, shop_front)
+			for column_index in range(4):
+				var item_pos: Vector3 = Vector3(shelf_x - 0.60 + float(column_index) * 0.40, 0.51 + float(row_index) * 0.80, shelf_z + 0.24)
+				var food_ids := ["apple", "bread", "banana", "orange", "lemon", "egg", "carrot", "pizza", "donut", "bottle-oil"]
+				var food_id: String = food_ids[(shelf_index * 5 + row_index * 4 + column_index) % food_ids.size()]
+				if _licensed_model("food-kit/" + food_id, item_pos, Vector3(0.28, 0.27, 0.28), shop_front) == null:
+					_box("Grocery package", item_pos, Vector3(0.25, 0.29, 0.26), PALETTE[(shelf_index + row_index + column_index) % PALETTE.size()], false, shop_front)
 	_build_vendor(LOCATIONS["rival"], "المنافس - راقب الأسعار", Color(0.62, 0.26, 0.27))
 	_build_vendor(LOCATIONS["delivery"], "التوصيل - مهمات", Color(0.45, 0.32, 0.66))
 	_sign("سوق المدينة", Vector3(0, 2.8, 0), null, 0.004)
@@ -301,25 +296,24 @@ func _person(at: Vector3, shirt: Color, wander: bool) -> void:
 func _create_cars_and_people() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 3812
-	for i in range(18):
+	for i in range(34):
 		var x: float = float(rng.randi_range(-3, 3)) * 24.0 + 9.0
 		var z: float = float(rng.randi_range(-3, 3)) * 24.0 + 6.0
 		_person(Vector3(x, 0, z), PALETTE[i % PALETTE.size()], true)
-	for i in range(10):
-		if i == 5:
-			continue # Never obscure the player's starting position with a parked car.
-		var lane: float = float(i - 5) * 19.0
-		var car := Node3D.new()
-		car.position = Vector3(lane, 0.0, 3.1)
-		car.rotation.y = PI / 2
-		add_child(car)
-		var paint: Color = PALETTE[i % PALETTE.size()]
-		_box("Parked car", Vector3(0, 0.72, 0), Vector3(2.1, 0.8, 4.0), paint, false, car)
-		_box("Vehicle windows", Vector3(0, 1.3, 0), Vector3(1.75, 0.5, 2.1), Color(0.16, 0.29, 0.38), false, car)
-		for side in [-1, 1]:
-			for front in [-1, 1]:
-				var wheel := _cylinder("Tire", Vector3(side * 1.08, 0.38, front * 1.25), 0.38, 0.18, Color(0.09, 0.09, 0.11), car)
-				wheel.rotation_degrees.z = 90
+	# Parking bays: use real three-dimensional car models, not rectangular placeholder cars.
+	var parked_types := ["sedan", "sedan-sports", "taxi", "delivery", "hatchback-sports"]
+	for i in range(9):
+		if i == 4 or i == 5:
+			continue # Clear the spawn and the market pedestrian crossing.
+		var lane: float = float(i - 4) * 22.0
+		var parked_car := Node3D.new()
+		parked_car.name = "ParkedVehicle"
+		parked_car.position = Vector3(lane, 0.0, 3.2)
+		parked_car.rotation.y = PI / 2.0
+		add_child(parked_car)
+		var model: Node3D = _licensed_model("car-kit/" + parked_types[i % parked_types.size()], Vector3.ZERO, Vector3(2.0, 1.65, 4.2), parked_car)
+		if model == null:
+			_box("Car fallback body", Vector3(0, 0.72, 0), Vector3(1.95, 0.95, 4.1), PALETTE[i % PALETTE.size()], false, parked_car)
 
 func _create_street_lamps() -> void:
 	for x in range(-3, 4, 2):

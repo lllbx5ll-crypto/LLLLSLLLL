@@ -7,6 +7,8 @@ var touch_move: Vector2 = Vector2.ZERO
 var footstep_clock: float = 0.0
 var animated_legs: Array[Node3D] = []
 var detailed_visual: Node3D
+var camera_yaw: float = 0.0
+var travelled_distance: float = 0.0
 
 func _ready() -> void:
 	name = "Player"
@@ -40,7 +42,7 @@ func _ready() -> void:
 	_import_licensed_character()
 
 func _import_licensed_character() -> void:
-	var path: String = "res://assets/models/mini-characters/character-male-a.glb"
+	var path: String = "res://assets/models/mini-characters/character-male-b.glb"
 	if not ResourceLoader.exists(path):
 		return
 	var scene: Resource = load(path)
@@ -49,22 +51,10 @@ func _import_licensed_character() -> void:
 	detailed_visual = (scene as PackedScene).instantiate()
 	detailed_visual.name = "HumanCharacter3D"
 	add_child(detailed_visual)
-	detailed_visual.rotation.y = PI
-	var mesh_height: float = _model_height(detailed_visual)
-	detailed_visual.scale = Vector3.ONE * (1.82 / maxf(mesh_height, 0.3))
+	preload("res://scripts/ModelFit.gd").person(detailed_visual, 1.76)
 	for part in get_children():
 		if part is MeshInstance3D:
 			(part as MeshInstance3D).visible = false
-
-func _model_height(root: Node) -> float:
-	var height: float = 0.0
-	if root is MeshInstance3D:
-		var mesh_part := root as MeshInstance3D
-		if mesh_part.mesh != null:
-			height = mesh_part.mesh.get_aabb().size.y
-	for child in root.get_children():
-		height = maxf(height, _model_height(child))
-	return height
 
 func _mesh_box(label: String, offset: Vector3, size: Vector3, material: Material) -> Node3D:
 	var mesh_node := MeshInstance3D.new()
@@ -96,19 +86,25 @@ func _physics_process(delta: float) -> void:
 	if touch_move.length() > 0.05:
 		input_direction = touch_move
 	input_direction = input_direction.limit_length()
-	var direction := Vector3(input_direction.x, 0.0, input_direction.y)
+	# Walk relative to where the camera is looking.
+	var right := Vector3(cos(camera_yaw), 0.0, -sin(camera_yaw))
+	var backwards := Vector3(sin(camera_yaw), 0.0, cos(camera_yaw))
+	var direction: Vector3 = (right * input_direction.x + backwards * input_direction.y).normalized() * input_direction.length()
 	velocity.x = direction.x * WALK_SPEED
 	velocity.z = direction.z * WALK_SPEED
 	if not is_on_floor():
 		velocity.y -= GRAVITY * delta
 	else:
 		velocity.y = -0.1
+	var before: Vector3 = global_position
 	move_and_slide()
+	travelled_distance += Vector2(global_position.x - before.x, global_position.z - before.z).length()
 	if direction.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * 12.0)
 		footstep_clock += delta * 11.0
 		if detailed_visual != null:
-			detailed_visual.position.y = absf(sin(footstep_clock)) * 0.04
+			# Small movement cue only; never alter real-world scale.
+			detailed_visual.position.y = absf(sin(footstep_clock)) * 0.018
 		if animated_legs.size() == 2:
 			animated_legs[0].rotation.x = sin(footstep_clock) * 0.45
 			animated_legs[1].rotation.x = -sin(footstep_clock) * 0.45

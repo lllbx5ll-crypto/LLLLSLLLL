@@ -24,7 +24,7 @@ func _ready() -> void:
 			if model is PackedScene:
 				var art: Node3D = (model as PackedScene).instantiate()
 				car.add_child(art)
-				art.scale = Vector3(1.1, 1.1, 1.1)
+				preload("res://scripts/ModelFit.gd").vehicle(art, 4.2)
 			else:
 				has_car_model = false
 		if not has_car_model:
