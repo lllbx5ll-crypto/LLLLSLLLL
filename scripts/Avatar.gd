@@ -49,6 +49,7 @@ func _import_licensed_character() -> void:
 	detailed_visual = (scene as PackedScene).instantiate()
 	detailed_visual.name = "HumanCharacter3D"
 	add_child(detailed_visual)
+	detailed_visual.rotation.y = PI
 	var mesh_height: float = _model_height(detailed_visual)
 	detailed_visual.scale = Vector3.ONE * (1.82 / maxf(mesh_height, 0.3))
 	for part in get_children():

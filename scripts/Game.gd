@@ -37,12 +37,12 @@ func _ready() -> void:
 	add_child(avatar)
 	camera = Camera3D.new()
 	camera.name = "ThirdPersonCamera"
-	camera.fov = 67.0
+	camera.fov = 65.0
 	camera.near = 0.1
 	camera.far = 195.0
 	camera.current = true
 	add_child(camera)
-	camera.position = avatar.position + Vector3(0, 8.3, 13.0)
+	camera.position = avatar.position + Vector3(0, 5.7, 9.2)
 	camera.look_at(avatar.position + Vector3(0, 1.0, 0))
 	sound = preload("res://scripts/SoundFX.gd").new()
 	add_child(sound)
@@ -62,7 +62,11 @@ func _process(delta: float) -> void:
 		notice_duration -= delta
 		if notice_duration <= 0.0:
 			notice_label.text = ""
-	var target: Vector3 = avatar.position + Vector3(0, 8.4, 13.0)
+	if ui_root != null:
+		var event_panel := ui_root.get_node_or_null("EventNoticePanel")
+		if event_panel != null:
+			event_panel.visible = notice_duration > 0.0
+	var target: Vector3 = avatar.position + Vector3(0, 5.7, 9.2)
 	camera.position = camera.position.lerp(target, minf(1.0, delta * 5.0))
 	camera.look_at(avatar.position + Vector3(0, 1.1, 0))
 	var move := Vector2(float(direction_keys["right"]) - float(direction_keys["left"]), float(direction_keys["down"]) - float(direction_keys["up"]))
@@ -160,10 +164,10 @@ func _create_interface() -> void:
 	mini_map.name = "StreetMinimap"
 	mini_map.player_ref = avatar
 	mini_map.city_ref = city
-	mini_map.anchor_left = 0.815
+	mini_map.anchor_left = 0.838
 	mini_map.anchor_right = 0.98
-	mini_map.anchor_top = 0.15
-	mini_map.anchor_bottom = 0.45
+	mini_map.anchor_top = 0.16
+	mini_map.anchor_bottom = 0.40
 	ui_root.add_child(mini_map)
 
 	# The controls fit in the bottom corners. Keep streets and character visible.
@@ -204,6 +208,7 @@ func _create_interface() -> void:
 	ui_root.add_child(trade)
 
 	var message_panel := _panel(Color(0.018, 0.075, 0.105, 0.82), 9)
+	message_panel.name = "EventNoticePanel"
 	message_panel.anchor_left = 0.285
 	message_panel.anchor_right = 0.735
 	message_panel.anchor_top = 0.86

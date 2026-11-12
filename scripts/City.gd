@@ -137,7 +137,7 @@ func _create_environment() -> void:
 	sun.name = "DayNightSun"
 	sun.rotation_degrees = Vector3(-49, 32, 0)
 	sun.light_energy = 1.25
-	sun.shadow_enabled = false
+	sun.shadow_enabled = true
 	add_child(sun)
 	_box("Earth and collision ground", Vector3(0, -0.6, 0), Vector3(236, 1.2, 236), Color(0.70, 0.67, 0.58), true)
 
@@ -306,6 +306,8 @@ func _create_cars_and_people() -> void:
 		var z: float = float(rng.randi_range(-3, 3)) * 24.0 + 6.0
 		_person(Vector3(x, 0, z), PALETTE[i % PALETTE.size()], true)
 	for i in range(10):
+		if i == 5:
+			continue # Never obscure the player's starting position with a parked car.
 		var lane: float = float(i - 5) * 19.0
 		var car := Node3D.new()
 		car.position = Vector3(lane, 0.0, 3.1)
