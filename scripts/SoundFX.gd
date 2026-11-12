@@ -9,6 +9,9 @@ var clip_player: AudioStreamPlayer
 var market_loop: AudioStreamPlayer
 var street_loop: AudioStreamPlayer
 var sound_clips: Dictionary = {}
+var footsteps: Array[AudioStream] = []
+var footstep_players: Array[AudioStreamPlayer] = []
+var foot_index: int = 0
 
 func _ready() -> void:
 	var stream := AudioStreamGenerator.new()
@@ -38,6 +41,16 @@ func _ready() -> void:
 		var filepath: String = "res://assets/audio/" + sounds[cue]
 		if ResourceLoader.exists(filepath):
 			sound_clips[cue] = load(filepath)
+	for name in ["footstep00.ogg", "footstep02.ogg", "footstep06.ogg", "footstep09.ogg"]:
+		var path: String = "res://assets/audio/" + name
+		if ResourceLoader.exists(path):
+			footsteps.append(load(path))
+	for i in range(3):
+		var step_voice := AudioStreamPlayer.new()
+		step_voice.volume_db = -3.5
+		step_voice.pitch_scale = 1.0
+		add_child(step_voice)
+		footstep_players.append(step_voice)
 	clip_player = AudioStreamPlayer.new()
 	clip_player.volume_db = -10.0
 	add_child(clip_player)
@@ -81,6 +94,13 @@ func _process(_delta: float) -> void:
 		playback.push_frame(Vector2(val * 0.023, val * 0.023))
 
 func effect(kind: String = "coin") -> void:
+	if kind == "step" and not footsteps.is_empty() and not footstep_players.is_empty():
+		var voice: AudioStreamPlayer = footstep_players[foot_index % footstep_players.size()]
+		voice.stream = footsteps[foot_index % footsteps.size()]
+		voice.pitch_scale = randf_range(0.95, 1.06)
+		voice.play()
+		foot_index += 1
+		return
 	if sound_clips.has(kind) and clip_player != null:
 		clip_player.stream = sound_clips[kind]
 		clip_player.play()

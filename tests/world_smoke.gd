@@ -34,7 +34,19 @@ func _run() -> void:
 		push_error("Arabic HUD did not initialize")
 		quit(1)
 		return
-	print("WORLD SMOKE PASS: scene, world, traffic, player and Arabic UI loaded")
+	# Exercise the physical customer queue and product checkout, not only money arithmetic.
+	var sales: Node = game.get_node("CustomerSystem")
+	sales.economy.stall_owned = true
+	sales.economy.inventory["bread"] = 12
+	sales.debug_spawn_customer()
+	sales.debug_mark_arrived()
+	var sold_before: int = sales.economy.sold_count
+	var reply: String = sales.checkout()
+	if not reply.begins_with("المحاسبة تمت") or sales.economy.sold_count <= sold_before:
+		push_error("Customer checkout regression: " + reply)
+		quit(1)
+		return
+	print("WORLD SMOKE PASS: world, camera, traffic, player, UI and actual customer checkout")
 	game.queue_free()
 	await process_frame
 	quit()

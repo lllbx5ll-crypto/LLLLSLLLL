@@ -110,7 +110,10 @@ func _sign(text_value: String, at: Vector3, parent: Node3D = null, scale_value: 
 	label.font_size = 46
 	label.pixel_size = scale_value
 	label.text_direction = TextServer.DIRECTION_RTL
-	if ResourceLoader.exists("res://assets/fonts/NotoNaskhArabic.ttf"):
+	var cairo_path: String = "res://assets/fonts/Cairo.ttf"
+	if ResourceLoader.exists(cairo_path):
+		label.font = load(cairo_path)
+	elif ResourceLoader.exists("res://assets/fonts/NotoNaskhArabic.ttf"):
 		label.font = load("res://assets/fonts/NotoNaskhArabic.ttf")
 	label.modulate = Color(1.0, 0.96, 0.76)
 	label.outline_size = 5

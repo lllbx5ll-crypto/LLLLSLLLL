@@ -52,11 +52,22 @@ def main() -> None:
         if len(content) < 10000:
             raise RuntimeError("Arabic font download unexpectedly small")
         font_file.write_bytes(content)
+    # Cairo is a legible modern Arabic UI font. Bundled offline under OFL 1.1.
+    cairo = font_out / "Cairo.ttf"
+    if not cairo.exists():
+        url = "https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/Cairo%5Bslnt%2Cwght%5D.ttf"
+        data = fetch(url)
+        if len(data) < 10000 or data[:4] not in (b"\\x00\\x01\\x00\\x00", b"OTTO"):
+            raise RuntimeError("Cairo Arabic TTF did not download correctly")
+        cairo.write_bytes(data)
     license_out = ROOT / "assets" / "licenses"
     license_out.mkdir(parents=True, exist_ok=True)
     ofl_out = license_out / "OFL-NotoNaskhArabic.txt"
     if not ofl_out.exists():
         ofl_out.write_bytes(fetch("https://raw.githubusercontent.com/google/fonts/main/ofl/notonaskharabic/OFL.txt"))
+    cairo_ofl = license_out / "OFL-Cairo.txt"
+    if not cairo_ofl.exists():
+        cairo_ofl.write_bytes(fetch("https://raw.githubusercontent.com/google/fonts/main/ofl/cairo/OFL.txt"))
     expected = sum(len(values) for values in DATA["packs"].values())
     if missing or count != expected:
         raise RuntimeError(f"Missing assets: {missing}. Got {count}/{expected}")
@@ -82,7 +93,17 @@ def main() -> None:
                 raise RuntimeError(f"Invalid field-recorded ambience: {name}")
             destination.write_bytes(data)
             print(f"Installed field recording {name}: {len(data)} bytes")
-    print(f"ASSETS OK: {count} CC0 Kenney GLB models, Arabic OFL font, real Kenney click WAV sounds")
+    # Four natural footstep recordings from Kenney RPG Audio, CC0 1.0.
+    # Copied from the project that publishes the exact upstream licensing and hashes.
+    steps_base = "https://raw.githubusercontent.com/euuuuuuan/moonshard-warden-public/897d26af64aab4003b057b3910a7118279b927d8/src/assets/kenney-rpg-audio/"
+    for name in ("footstep00.ogg", "footstep02.ogg", "footstep06.ogg", "footstep09.ogg"):
+        destination = audio_dir / name
+        if not destination.exists():
+            data = fetch(steps_base + name)
+            if not data.startswith(b"OggS") or len(data) < 3000:
+                raise RuntimeError(f"Invalid footstep audio: {name}")
+            destination.write_bytes(data)
+    print(f"ASSETS OK: {count} CC0 Kenney GLB models, Cairo Arabic OFL font, licensed footsteps and ambience")
 
 
 if __name__ == "__main__":

@@ -154,12 +154,12 @@ func _create_interface() -> void:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(ui_root)
 	var ui_theme := Theme.new()
-	var font_path: String = "res://assets/fonts/NotoNaskhArabic.ttf"
+	var font_path: String = "res://assets/fonts/Cairo.ttf"
 	if ResourceLoader.exists(font_path):
 		ui_theme.default_font = load(font_path)
 	else:
 		var system_font := SystemFont.new()
-		system_font.font_names = PackedStringArray(["Noto Naskh Arabic", "Noto Sans Arabic", "DejaVu Sans"])
+		system_font.font_names = PackedStringArray(["Cairo", "Noto Sans Arabic", "DejaVu Sans"])
 		ui_theme.default_font = system_font
 	ui_theme.default_font_size = 19
 	ui_root.theme = ui_theme
