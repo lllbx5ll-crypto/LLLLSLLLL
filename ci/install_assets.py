@@ -60,7 +60,31 @@ def main() -> None:
     expected = sum(len(values) for values in DATA["packs"].values())
     if missing or count != expected:
         raise RuntimeError(f"Missing assets: {missing}. Got {count}/{expected}")
-    print(f"ASSETS OK: {count} CC0 Kenney GLB models, plus Arabic font (OFL)")
+    # Recorded interface button sounds (Kenney CC0). Ambient marketplace audio
+    # is optional because the hosting service can be temporarily unavailable.
+    audio_dir = ROOT / "assets" / "audio"
+    audio_dir.mkdir(parents=True, exist_ok=True)
+    kenney_source = "https://raw.githubusercontent.com/Calinou/kenney-ui-audio/8c3d81b9159d058c444f89d12d518276b0b09345/addons/kenney_ui_audio/"
+    for name in ("click1.wav", "click2.wav", "switch1.wav", "switch2.wav"):
+        destination = audio_dir / name
+        if not destination.exists():
+            data = fetch(kenney_source + name)
+            if not data.startswith(b"RIFF") or len(data) < 1000:
+                raise RuntimeError(f"Invalid CC0 audio file: {name}")
+            destination.write_bytes(data)
+    ambience = audio_dir / "market-ambience.wav"
+    if not ambience.exists():
+        try:
+            data = fetch("https://sfxmint.com/dl/market-ambience-01.wav")
+            if data.startswith(b"RIFF") and len(data) > 50000:
+                ambience.write_bytes(data)
+                print(f"Installed optional marketplace ambience ({len(data)} bytes)")
+            else:
+                print("Optional marketplace ambience download was not valid WAV; using synthesized fallback")
+        except Exception as ex:
+            print(f"Optional ambience not installed: {ex}")
+    print(f"ASSETS OK: {count} CC0 Kenney GLB models, Arabic OFL font, real Kenney click WAV sounds")
+
 
 if __name__ == "__main__":
     main()

@@ -73,7 +73,7 @@ jobs:
         run: |
           git config user.email "actions@users.noreply.github.com"
           git config user.name "GitHub Actions"
-          git add assets/models assets/fonts assets/licenses
+          git add assets/models assets/fonts assets/licenses assets/audio
           if ! git diff --cached --quiet; then
             git commit -m "Include Kenney CC0 3D city, people, products and Arabic font"
             git push origin HEAD:main
