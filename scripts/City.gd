@@ -290,7 +290,7 @@ func _person(at: Vector3, shirt: Color, wander: bool) -> void:
 	var chosen: String = character_ids[randi() % character_ids.size()]
 	var imported: Node3D = _licensed_model("mini-characters/" + chosen, Vector3.ZERO, Vector3(0.7, 1.8, 0.7), actor)
 	if imported == null:
-	_box("NPC clothing", Vector3(0, 1.15, 0), Vector3(0.57, 0.78, 0.35), shirt, false, actor)
+		_box("NPC clothing", Vector3(0, 1.15, 0), Vector3(0.57, 0.78, 0.35), shirt, false, actor)
 	if imported == null:
 		_sphere("NPC head", Vector3(0, 1.77, 0), 0.24, Color(0.66, 0.43, 0.28), actor)
 	if imported == null:
