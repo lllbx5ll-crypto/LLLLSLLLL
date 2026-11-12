@@ -29,6 +29,8 @@ func _ready() -> void:
 	add_child(economy)
 	city = preload("res://scripts/City.gd").new()
 	add_child(city)
+	var traffic: Node3D = preload("res://scripts/Traffic.gd").new()
+	add_child(traffic)
 	avatar = preload("res://scripts/Avatar.gd").new()
 	avatar.position = Vector3(0, 0.3, 0)
 	add_child(avatar)
@@ -120,6 +122,17 @@ func _create_interface() -> void:
 	location_info.add_theme_font_size_override("font_size", 18)
 	location_info.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
 	stack.add_child(location_info)
+
+	# Street minimap: roads, shops, suppliers, player and current heading.
+	var mini_map := preload("res://scripts/Minimap.gd").new()
+	mini_map.name = "StreetMinimap"
+	mini_map.player_ref = avatar
+	mini_map.city_ref = city
+	mini_map.anchor_left = 0.015
+	mini_map.anchor_right = 0.21
+	mini_map.anchor_top = 0.19
+	mini_map.anchor_bottom = 0.51
+	ui_root.add_child(mini_map)
 
 	# Product and competitor data.
 	var product_panel := _panel(Color(0.045, 0.12, 0.17, 0.93), 10)

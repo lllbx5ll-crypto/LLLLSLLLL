@@ -22,11 +22,15 @@ func _run() -> void:
 		push_error("Player did not initialize")
 		quit(1)
 		return
+	if game.get_node_or_null("Traffic") == null:
+		push_error("City traffic did not initialize")
+		quit(1)
+		return
 	if game.get_node_or_null("ArabicUI") == null:
 		push_error("Arabic HUD did not initialize")
 		quit(1)
 		return
-	print("WORLD SMOKE PASS: scene, world, player and Arabic UI loaded")
+	print("WORLD SMOKE PASS: scene, world, traffic, player and Arabic UI loaded")
 	game.queue_free()
 	await process_frame
 	quit()

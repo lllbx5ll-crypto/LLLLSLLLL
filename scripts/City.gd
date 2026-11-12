@@ -198,11 +198,26 @@ func _create_market() -> void:
 	shop_front.name = "PlayerShop"
 	shop_front.position = LOCATIONS["shop"]
 	add_child(shop_front)
-	_box("Shop facade", Vector3(0, 2.9, 0), Vector3(7.8, 5.8, 5.3), Color(0.81, 0.79, 0.72), true, shop_front)
-	_box("Shop door", Vector3(0, 1.5, 2.75), Vector3(2.8, 3, 0.16), Color(0.15, 0.28, 0.31), false, shop_front)
-	_box("Shop board", Vector3(0, 4.75, 2.9), Vector3(7.2, 1.3, 0.3), Color(0.08, 0.33, 0.29), false, shop_front)
-	business_sign = _sign("محل للإيجار", Vector3(0, 4.8, 3.13), shop_front, 0.009)
-	street_sign = _sign("شارع السوق", Vector3(0, 3.7, 3.16), shop_front, 0.004)
+	# The shop is an enterable interior, not a solid cube.
+	_box("Store tiled floor", Vector3(0, 0.14, 0), Vector3(8.2, 0.2, 7.2), Color(0.78, 0.75, 0.66), false, shop_front)
+	_box("Rear wall", Vector3(0, 2.8, -3.5), Vector3(8.2, 5.6, 0.36), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Left side wall", Vector3(-4.1, 2.8, 0), Vector3(0.36, 5.6, 7.2), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Right side wall", Vector3(4.1, 2.8, 0), Vector3(0.36, 5.6, 7.2), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Roof", Vector3(0, 5.65, 0), Vector3(8.4, 0.36, 7.4), Color(0.60, 0.57, 0.50), true, shop_front)
+	_box("Front left", Vector3(-3.1, 2.8, 3.5), Vector3(2.2, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Front right", Vector3(3.1, 2.8, 3.5), Vector3(2.2, 5.6, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Door lintel", Vector3(0, 4.9, 3.5), Vector3(4.1, 1.4, 0.34), Color(0.81, 0.79, 0.72), true, shop_front)
+	_box("Shop board", Vector3(0, 5.17, 3.74), Vector3(7.7, 1.0, 0.2), Color(0.08, 0.33, 0.29), false, shop_front)
+	business_sign = _sign("محل للإيجار", Vector3(0, 5.2, 3.9), shop_front, 0.008)
+	street_sign = _sign("شارع السوق", Vector3(0, 4.32, 3.9), shop_front, 0.004)
+	_box("Checkout counter", Vector3(-2.8, 0.8, 1.4), Vector3(1.2, 1.6, 2.1), Color(0.50, 0.29, 0.15), false, shop_front)
+	for shelf_index in range(2):
+		var shelf_x: float = -1.0 + float(shelf_index) * 3.1
+		_box("Product shelf", Vector3(shelf_x, 1.45, -1.2), Vector3(1.7, 2.9, 0.55), Color(0.60, 0.43, 0.27), false, shop_front)
+		for row_index in range(3):
+			for column_index in range(3):
+				var tint: Color = PALETTE[(shelf_index * 3 + row_index + column_index) % PALETTE.size()]
+				_box("Shop product package", Vector3(shelf_x - 0.55 + float(column_index) * 0.52, 0.68 + float(row_index) * 0.87, -0.82), Vector3(0.38, 0.62, 0.30), tint, false, shop_front)
 	_build_vendor(LOCATIONS["rival"], "المنافس - راقب الأسعار", Color(0.62, 0.26, 0.27))
 	_build_vendor(LOCATIONS["delivery"], "التوصيل - مهمات", Color(0.45, 0.32, 0.66))
 	_sign("المنطقة التجارية", Vector3(0, 5.0, 0), null, 0.015)
