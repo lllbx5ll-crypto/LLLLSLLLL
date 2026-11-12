@@ -7,6 +7,7 @@ var ambient: AudioStreamPlayer
 var ambient_phase: float = 0.0
 var clip_player: AudioStreamPlayer
 var market_loop: AudioStreamPlayer
+var street_loop: AudioStreamPlayer
 var sound_clips: Dictionary = {}
 
 func _ready() -> void:
@@ -40,19 +41,32 @@ func _ready() -> void:
 	clip_player = AudioStreamPlayer.new()
 	clip_player.volume_db = -10.0
 	add_child(clip_player)
-	var ambient_file: String = "res://assets/audio/market-ambience.wav"
-	if ResourceLoader.exists(ambient_file):
+	var crowd_path: String = "res://assets/audio/crowd.ogg"
+	if ResourceLoader.exists(crowd_path):
 		market_loop = AudioStreamPlayer.new()
-		market_loop.name = "MarketplaceAmbience"
-		market_loop.stream = load(ambient_file)
+		market_loop.name = "CrowdAmbience"
+		market_loop.stream = load(crowd_path)
 		market_loop.volume_db = -28.0
 		add_child(market_loop)
 		market_loop.finished.connect(_repeat_market_sound)
 		market_loop.play()
+	var street_path: String = "res://assets/audio/city_wet_road.ogg"
+	if ResourceLoader.exists(street_path):
+		street_loop = AudioStreamPlayer.new()
+		street_loop.name = "DistantTrafficAmbience"
+		street_loop.stream = load(street_path)
+		street_loop.volume_db = -34.0
+		add_child(street_loop)
+		street_loop.finished.connect(_repeat_street_sound)
+		street_loop.play()
 
 func _repeat_market_sound() -> void:
 	if market_loop != null and is_inside_tree():
 		market_loop.play()
+
+func _repeat_street_sound() -> void:
+	if street_loop != null and is_inside_tree():
+		street_loop.play()
 
 func _process(_delta: float) -> void:
 	if ambient == null:

@@ -72,17 +72,16 @@ def main() -> None:
             if not data.startswith(b"RIFF") or len(data) < 1000:
                 raise RuntimeError(f"Invalid CC0 audio file: {name}")
             destination.write_bytes(data)
-    ambience = audio_dir / "market-ambience.wav"
-    if not ambience.exists():
-        try:
-            data = fetch("https://sfxmint.com/dl/market-ambience-01.wav")
-            if data.startswith(b"RIFF") and len(data) > 50000:
-                ambience.write_bytes(data)
-                print(f"Installed optional marketplace ambience ({len(data)} bytes)")
-            else:
-                print("Optional marketplace ambience download was not valid WAV; using synthesized fallback")
-        except Exception as ex:
-            print(f"Optional ambience not installed: {ex}")
+    # Authentic CC0 field-recording ambience loops, post-processed to 30 seconds.
+    recordings_base = "https://raw.githubusercontent.com/euuuuuuan/todak-public/f298bf5d4fa9a0f1552ce8ca437ea1d940b42d4f/assets/ambience/"
+    for name in ("crowd.ogg", "city_wet_road.ogg", "cafe.ogg"):
+        destination = audio_dir / name
+        if not destination.exists():
+            data = fetch(recordings_base + name)
+            if not data.startswith(b"OggS") or len(data) < 40000:
+                raise RuntimeError(f"Invalid field-recorded ambience: {name}")
+            destination.write_bytes(data)
+            print(f"Installed field recording {name}: {len(data)} bytes")
     print(f"ASSETS OK: {count} CC0 Kenney GLB models, Arabic OFL font, real Kenney click WAV sounds")
 
 
