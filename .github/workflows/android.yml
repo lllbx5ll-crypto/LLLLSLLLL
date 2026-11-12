@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   android:
@@ -64,6 +64,20 @@ jobs:
         run: |
           keytool -genkeypair -v -keystore "$RUNNER_TEMP/alqmishi-debug.keystore" -storepass android -keypass android -alias androiddebugkey -dname "CN=Al-Qmishi, O=Merchants City, C=YE" -keyalg RSA -keysize 2048 -validity 10000 -noprompt
           echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$RUNNER_TEMP/alqmishi-debug.keystore" >> "$GITHUB_ENV"
+
+      - name: Download and validate CC0 3D assets and Arabic font
+        run: python3 ci/install_assets.py
+
+      - name: Preserve licensed models in repository
+        shell: bash
+        run: |
+          git config user.email "actions@users.noreply.github.com"
+          git config user.name "GitHub Actions"
+          git add assets/models assets/fonts assets/licenses
+          if ! git diff --cached --quiet; then
+            git commit -m "Include Kenney CC0 3D city, people, products and Arabic font"
+            git push origin HEAD:main
+          fi
 
       - name: Import project and check scripts
         run: |

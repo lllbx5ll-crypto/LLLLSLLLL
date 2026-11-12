@@ -1,0 +1,90 @@
+{
+  "source": "https://github.com/Hidencod/tge-assets",
+  "source_commit": "3ddcc695adbba9fb918cf31b7c139b3f95b76910",
+  "license": "CC0-1.0",
+  "original_author": "Kenney",
+  "packs": {
+    "city-kit-commercial": [
+      "building-a",
+      "building-b",
+      "building-c",
+      "building-d",
+      "building-e",
+      "building-f",
+      "building-g",
+      "building-h",
+      "building-i",
+      "building-j",
+      "building-k",
+      "building-l",
+      "building-m",
+      "building-n"
+    ],
+    "city-kit-suburban": [
+      "building-type-a",
+      "building-type-b",
+      "building-type-c",
+      "building-type-d",
+      "building-type-e",
+      "building-type-f",
+      "building-type-g",
+      "building-type-h",
+      "building-type-i",
+      "building-type-j",
+      "building-type-k",
+      "building-type-l",
+      "building-type-m",
+      "building-type-n",
+      "building-type-o",
+      "building-type-p",
+      "building-type-q",
+      "building-type-r"
+    ],
+    "car-kit": [
+      "delivery",
+      "delivery-flat",
+      "hatchback-sports",
+      "ambulance",
+      "firetruck",
+      "pickup",
+      "sedan",
+      "taxi"
+    ],
+    "mini-characters": [
+      "character-male-a",
+      "character-male-b",
+      "character-male-c",
+      "character-male-d",
+      "character-male-e",
+      "character-female-a",
+      "character-female-b",
+      "character-female-c",
+      "character-female-d",
+      "character-female-e"
+    ],
+    "food-kit": [
+      "apple",
+      "banana",
+      "bread",
+      "burger",
+      "carrot",
+      "cherry",
+      "donut",
+      "egg",
+      "lemon",
+      "orange",
+      "milk",
+      "pizza",
+      "watermelon"
+    ],
+    "furniture-kit": [
+      "bookcaseopen",
+      "cardboardboxclosed",
+      "bench",
+      "chair",
+      "table",
+      "pottedplant",
+      "trashcan"
+    ]
+  }
+}
