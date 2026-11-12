@@ -6,6 +6,7 @@ const GRAVITY: float = 18.0
 var touch_move: Vector2 = Vector2.ZERO
 var footstep_clock: float = 0.0
 var animated_legs: Array[Node3D] = []
+var detailed_visual: Node3D
 
 func _ready() -> void:
 	name = "Player"
@@ -36,6 +37,33 @@ func _ready() -> void:
 	var left: Node3D = _mesh_box("LeftLeg", Vector3(-0.18, 0.42, 0), Vector3(0.23, 0.79, 0.25), pants)
 	var right: Node3D = _mesh_box("RightLeg", Vector3(0.18, 0.42, 0), Vector3(0.23, 0.79, 0.25), pants)
 	animated_legs = [left, right]
+	_import_licensed_character()
+
+func _import_licensed_character() -> void:
+	var path: String = "res://assets/models/mini-characters/character-male-a.glb"
+	if not ResourceLoader.exists(path):
+		return
+	var scene: Resource = load(path)
+	if not scene is PackedScene:
+		return
+	detailed_visual = (scene as PackedScene).instantiate()
+	detailed_visual.name = "HumanCharacter3D"
+	add_child(detailed_visual)
+	var mesh_height: float = _model_height(detailed_visual)
+	detailed_visual.scale = Vector3.ONE * (1.82 / maxf(mesh_height, 0.3))
+	for part in get_children():
+		if part is MeshInstance3D:
+			(part as MeshInstance3D).visible = false
+
+func _model_height(root: Node) -> float:
+	var height: float = 0.0
+	if root is MeshInstance3D:
+		var mesh_part := root as MeshInstance3D
+		if mesh_part.mesh != null:
+			height = mesh_part.mesh.get_aabb().size.y
+	for child in root.get_children():
+		height = maxf(height, _model_height(child))
+	return height
 
 func _mesh_box(label: String, offset: Vector3, size: Vector3, material: Material) -> Node3D:
 	var mesh_node := MeshInstance3D.new()
@@ -78,10 +106,14 @@ func _physics_process(delta: float) -> void:
 	if direction.length() > 0.01:
 		rotation.y = lerp_angle(rotation.y, atan2(-direction.x, -direction.z), delta * 12.0)
 		footstep_clock += delta * 11.0
+		if detailed_visual != null:
+			detailed_visual.position.y = absf(sin(footstep_clock)) * 0.04
 		if animated_legs.size() == 2:
 			animated_legs[0].rotation.x = sin(footstep_clock) * 0.45
 			animated_legs[1].rotation.x = -sin(footstep_clock) * 0.45
 	else:
+		if detailed_visual != null:
+			detailed_visual.position.y = lerpf(detailed_visual.position.y, 0.0, delta * 9.0)
 		if animated_legs.size() == 2:
 			animated_legs[0].rotation.x = lerpf(animated_legs[0].rotation.x, 0.0, delta * 8)
 			animated_legs[1].rotation.x = lerpf(animated_legs[1].rotation.x, 0.0, delta * 8)

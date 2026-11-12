@@ -16,24 +16,40 @@ func _ready() -> void:
 		var car := Node3D.new()
 		car.name = "MovingCar_%02d" % i
 		add_child(car)
-		_mesh_box(car, "Chassis", Vector3(0, 0.72, 0), Vector3(1.75, 0.66, 3.55), PAINTS[i % PAINTS.size()])
-		_mesh_box(car, "Cabin", Vector3(0, 1.18, 0.0), Vector3(1.4, 0.58, 1.8), Color(0.16, 0.27, 0.33))
-		_mesh_box(car, "Front lamps", Vector3(0, 0.71, -1.83), Vector3(1.23, 0.17, 0.07), Color(1, 0.90, 0.55))
-		_mesh_box(car, "Tail lamps", Vector3(0, 0.70, 1.81), Vector3(1.23, 0.17, 0.07), Color(0.82, 0.10, 0.12))
-		for side in [-1, 1]:
-			for axle in [-1, 1]:
-				var wheel := MeshInstance3D.new()
-				var shape := CylinderMesh.new()
-				shape.height = 0.2
-				shape.top_radius = 0.31
-				shape.bottom_radius = 0.31
-				wheel.mesh = shape
-				wheel.position = Vector3(side * 0.88, 0.40, axle * 1.06)
-				wheel.rotation_degrees.z = 90.0
-				var rubber := StandardMaterial3D.new()
-				rubber.albedo_color = Color(0.10, 0.10, 0.11)
-				wheel.material_override = rubber
-				car.add_child(wheel)
+		var car_models := ["sedan", "taxi", "delivery", "hatchback-sports", "sedan-sports"]
+		var model_path: String = "res://assets/models/car-kit/" + car_models[i % car_models.size()] + ".glb"
+		var has_car_model: bool = ResourceLoader.exists(model_path)
+		if has_car_model:
+			var model = load(model_path)
+			if model is PackedScene:
+				var art: Node3D = (model as PackedScene).instantiate()
+				car.add_child(art)
+				art.scale = Vector3(1.1, 1.1, 1.1)
+			else:
+				has_car_model = false
+		if not has_car_model:
+			_mesh_box(car, "Chassis", Vector3(0, 0.72, 0), Vector3(1.75, 0.66, 3.55), PAINTS[i % PAINTS.size()])
+		if not has_car_model:
+			_mesh_box(car, "Cabin", Vector3(0, 1.18, 0.0), Vector3(1.4, 0.58, 1.8), Color(0.16, 0.27, 0.33))
+		if not has_car_model:
+			_mesh_box(car, "Front lamps", Vector3(0, 0.71, -1.83), Vector3(1.23, 0.17, 0.07), Color(1, 0.90, 0.55))
+		if not has_car_model:
+			_mesh_box(car, "Tail lamps", Vector3(0, 0.70, 1.81), Vector3(1.23, 0.17, 0.07), Color(0.82, 0.10, 0.12))
+		if not has_car_model:
+			for side in [-1, 1]:
+				for axle in [-1, 1]:
+					var wheel := MeshInstance3D.new()
+					var shape := CylinderMesh.new()
+					shape.height = 0.2
+					shape.top_radius = 0.31
+					shape.bottom_radius = 0.31
+					wheel.mesh = shape
+					wheel.position = Vector3(side * 0.88, 0.40, axle * 1.06)
+					wheel.rotation_degrees.z = 90.0
+					var rubber := StandardMaterial3D.new()
+					rubber.albedo_color = Color(0.10, 0.10, 0.11)
+					wheel.material_override = rubber
+					car.add_child(wheel)
 		vehicles.append({
 			"node": car, "axis": i % 2, "route": (i % 7 - 3) * 24.0,
 			"offset": 2.0 if i % 3 == 0 else -2.0,

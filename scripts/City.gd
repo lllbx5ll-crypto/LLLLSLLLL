@@ -107,8 +107,11 @@ func _sign(text_value: String, at: Vector3, parent: Node3D = null, scale_value: 
 	var label := Label3D.new()
 	label.name = "ArabicSign"
 	label.text = text_value
-	label.font_size = 52
+	label.font_size = 46
 	label.pixel_size = scale_value
+	label.text_direction = TextServer.DIRECTION_RTL
+	if ResourceLoader.exists("res://assets/fonts/NotoNaskhArabic.ttf"):
+		label.font = load("res://assets/fonts/NotoNaskhArabic.ttf")
 	label.modulate = Color(1.0, 0.96, 0.76)
 	label.outline_size = 8
 	label.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -149,6 +152,39 @@ func _create_streets() -> void:
 				_box("Lane divider", Vector3(at, 0.085, other + 8), Vector3(0.14, 0.012, 3.0), Color(0.94, 0.89, 0.62))
 				_box("Lane divider", Vector3(other + 8, 0.09, at), Vector3(3.0, 0.012, 0.14), Color(0.94, 0.89, 0.62))
 
+func _licensed_model(relative_path: String, at: Vector3, requested_size: Vector3, parent: Node3D = null) -> Node3D:
+	var path: String = "res://assets/models/" + relative_path + ".glb"
+	if not ResourceLoader.exists(path):
+		return null
+	var resource: Resource = load(path)
+	if not resource is PackedScene:
+		return null
+	var instance: Node3D = (resource as PackedScene).instantiate()
+	instance.name = "CC0_" + relative_path.get_file()
+	if parent == null:
+		add_child(instance)
+	else:
+		parent.add_child(instance)
+	instance.position = at
+	var size: Vector3 = _asset_bounds_size(instance)
+	instance.scale = Vector3(
+		requested_size.x / maxf(size.x, 0.1),
+		requested_size.y / maxf(size.y, 0.1),
+		requested_size.z / maxf(size.z, 0.1)
+	)
+	return instance
+
+func _asset_bounds_size(node: Node) -> Vector3:
+	var result := Vector3(0.0, 0.0, 0.0)
+	if node is MeshInstance3D:
+		var part: MeshInstance3D = node as MeshInstance3D
+		if part.mesh != null:
+			result = part.mesh.get_aabb().size
+	for child in node.get_children():
+		var child_size: Vector3 = _asset_bounds_size(child)
+		result = Vector3(maxf(result.x, child_size.x), maxf(result.y, child_size.y), maxf(result.z, child_size.z))
+	return result
+
 func _create_blocks() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 642311
@@ -166,7 +202,15 @@ func _create_blocks() -> void:
 			var tall: float = float(floors) * 2.75
 			var building_color: Color = PALETTE[rng.randi_range(0, PALETTE.size() - 1)]
 			var body_size := Vector3(13.5, tall, 13.5)
-			_box("Apartment/office %d" % building_count, Vector3(x, tall / 2, z), body_size, building_color, true)
+			var is_commercial: bool = abs(ix) + abs(iz) <= 4
+			var folder: String = "city-kit-commercial" if is_commercial else "city-kit-suburban"
+			var variant: String = ("building-" + char(97 + building_count % 14)) if is_commercial else ("building-type-" + char(97 + building_count % 18))
+			var model: Node3D = _licensed_model(folder + "/" + variant, Vector3(x, 0, z), body_size)
+			var shell := _box("Building collision %d" % building_count, Vector3(x, tall / 2, z), body_size, building_color, true)
+			if model != null:
+				shell.visible = false
+				building_count += 1
+				continue
 			_box("Roof parapet", Vector3(x, tall + 0.35, z), Vector3(14, 0.7, 14), Color(0.54, 0.49, 0.46))
 			_box("Entry door", Vector3(x, 1.25, z - 6.85), Vector3(2.2, 2.5, 0.14), Color(0.27, 0.23, 0.19))
 			for floor_index in range(1, floors + 1):
@@ -193,7 +237,7 @@ func _create_market() -> void:
 	_box("Stall awning", Vector3(0, 2.95, 0), Vector3(5.5, 0.25, 2.7), Color(0.77, 0.22, 0.17), false, stall_canvas)
 	for i in range(5):
 		_sphere("Fruit display", Vector3(-1.65 + i * 0.8, 1.84, -0.15), 0.28, Color(0.86, 0.37 + i * 0.08, 0.08), stall_canvas)
-	_sign("بسطة للبيع - 250", Vector3(0, 3.5, 0), stall_canvas)
+	_sign("بسطة تجارية", Vector3(0, 3.1, 0), stall_canvas, 0.005)
 	shop_front = Node3D.new()
 	shop_front.name = "PlayerShop"
 	shop_front.position = LOCATIONS["shop"]
@@ -217,10 +261,15 @@ func _create_market() -> void:
 		for row_index in range(3):
 			for column_index in range(3):
 				var tint: Color = PALETTE[(shelf_index * 3 + row_index + column_index) % PALETTE.size()]
-				_box("Shop product package", Vector3(shelf_x - 0.55 + float(column_index) * 0.52, 0.68 + float(row_index) * 0.87, -0.82), Vector3(0.38, 0.62, 0.30), tint, false, shop_front)
+				var shelf_item: Vector3 = Vector3(shelf_x - 0.55 + float(column_index) * 0.52, 0.68 + float(row_index) * 0.87, -0.82)
+				var food_choices := ["apple", "bread", "banana", "orange", "lemon", "egg", "carrot"]
+				var food_id: String = food_choices[(shelf_index * 6 + row_index * 3 + column_index) % food_choices.size()]
+				var food_model: Node3D = _licensed_model("food-kit/" + food_id, shelf_item, Vector3(0.28, 0.38, 0.28), shop_front)
+				if food_model == null:
+					_box("Shop product package", shelf_item, Vector3(0.38, 0.62, 0.30), tint, false, shop_front)
 	_build_vendor(LOCATIONS["rival"], "المنافس - راقب الأسعار", Color(0.62, 0.26, 0.27))
 	_build_vendor(LOCATIONS["delivery"], "التوصيل - مهمات", Color(0.45, 0.32, 0.66))
-	_sign("المنطقة التجارية", Vector3(0, 5.0, 0), null, 0.015)
+	_sign("سوق المدينة", Vector3(0, 2.8, 0), null, 0.004)
 
 func _build_vendor(at: Vector3, title: String, awning: Color) -> void:
 	var vendor := Node3D.new()
@@ -230,16 +279,22 @@ func _build_vendor(at: Vector3, title: String, awning: Color) -> void:
 	_box("Awning", Vector3(0, 2.85, 0), Vector3(4.4, 0.23, 2.8), awning, false, vendor)
 	_cylinder("Post left", Vector3(-1.75, 1.4, -0.95), 0.09, 2.8, Color(0.30, 0.25, 0.20), vendor)
 	_cylinder("Post right", Vector3(1.75, 1.4, -0.95), 0.09, 2.8, Color(0.30, 0.25, 0.20), vendor)
-	_sign(title, Vector3(0, 3.4, 0), vendor, 0.008)
+	_sign(title, Vector3(0, 3.05, 0), vendor, 0.005)
 	_person(at + Vector3(0.4, 0, -2.1), Color(0.35, 0.33, 0.51), false)
 
 func _person(at: Vector3, shirt: Color, wander: bool) -> void:
 	var actor := Node3D.new()
 	actor.position = at
 	add_child(actor)
+	var character_ids := ["character-male-a", "character-male-b", "character-male-c", "character-female-a", "character-female-b", "character-male-d"]
+	var chosen: String = character_ids[randi() % character_ids.size()]
+	var imported: Node3D = _licensed_model("mini-characters/" + chosen, Vector3.ZERO, Vector3(0.7, 1.8, 0.7), actor)
+	if imported == null:
 	_box("NPC clothing", Vector3(0, 1.15, 0), Vector3(0.57, 0.78, 0.35), shirt, false, actor)
-	_sphere("NPC head", Vector3(0, 1.77, 0), 0.24, Color(0.66, 0.43, 0.28), actor)
-	_box("NPC legs", Vector3(0, 0.43, 0), Vector3(0.46, 0.8, 0.29), Color(0.22, 0.23, 0.25), false, actor)
+	if imported == null:
+		_sphere("NPC head", Vector3(0, 1.77, 0), 0.24, Color(0.66, 0.43, 0.28), actor)
+	if imported == null:
+		_box("NPC legs", Vector3(0, 0.43, 0), Vector3(0.46, 0.8, 0.29), Color(0.22, 0.23, 0.25), false, actor)
 	if wander:
 		wandering_people.append({"node": actor, "base": at, "phase": randf_range(0, TAU)})
 
