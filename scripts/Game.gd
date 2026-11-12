@@ -24,6 +24,10 @@ var store_edit: LineEdit
 var road_edit: LineEdit
 var help_overlay: ColorRect
 var trading_overlay: ColorRect
+var supplier_overlay: ColorRect
+var supplier_qty: SpinBox
+var supplier_info: Label
+var supplier_status: Label
 var selected_product: int = 0
 var direction_keys: Dictionary = {"up": false, "down": false, "left": false, "right": false}
 var notice_duration: float = 0.0
@@ -40,7 +44,7 @@ func _ready() -> void:
 	var traffic: Node3D = preload("res://scripts/Traffic.gd").new()
 	add_child(traffic)
 	avatar = preload("res://scripts/Avatar.gd").new()
-	avatar.position = Vector3(0, 0.3, 0)
+	avatar.position = Vector3(1.5, 0.3, 9.0)
 	add_child(avatar)
 	camera = Camera3D.new()
 	camera.name = "ThirdPersonCamera"
@@ -101,7 +105,7 @@ func _process(delta: float) -> void:
 	previous_walk_pos = avatar.position
 
 func _input(event: InputEvent) -> void:
-	if (trading_overlay != null and trading_overlay.visible) or (pop_overlay != null and pop_overlay.visible) or (help_overlay != null and help_overlay.visible):
+	if (trading_overlay != null and trading_overlay.visible) or (pop_overlay != null and pop_overlay.visible) or (help_overlay != null and help_overlay.visible) or (supplier_overlay != null and supplier_overlay.visible):
 		return
 	var screen: Vector2 = get_viewport().get_visible_rect().size
 	if event is InputEventScreenTouch:
@@ -140,6 +144,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		elif event.keycode == KEY_ESCAPE:
 			if trading_overlay != null:
 				trading_overlay.visible = false
+			if supplier_overlay != null:
+				supplier_overlay.visible = false
 			if pop_overlay != null:
 				pop_overlay.visible = false
 			if help_overlay != null:
@@ -273,6 +279,7 @@ func _create_interface() -> void:
 	message_panel.add_child(notice_label)
 
 	_create_trade_popup()
+	_create_supplier_popup()
 	_create_sign_popup()
 	_create_help_popup()
 	var help_hint := Label.new()
@@ -357,7 +364,7 @@ func _create_trade_popup() -> void:
 	action_grid.add_theme_constant_override("v_separation", 10)
 	action_scroll.add_child(action_grid)
 	_menu_action(action_grid, "العمل لدى التاجر", "work", Color(0.15, 0.36, 0.46))
-	_menu_action(action_grid, "شراء ٣ منتجات", "buy", Color(0.13, 0.35, 0.29))
+	_menu_action(action_grid, "زيارة المورد للشراء", "buy", Color(0.13, 0.35, 0.29))
 	_menu_action(action_grid, "محاسبة الزبون", "sell", Color(0.15, 0.44, 0.29))
 	_menu_action(action_grid, "شراء بسطة: 250", "stall", Color(0.46, 0.32, 0.15))
 	_menu_action(action_grid, "فتح محل: 1750", "shop", Color(0.46, 0.27, 0.17))
@@ -367,6 +374,67 @@ func _create_trade_popup() -> void:
 	_menu_action(action_grid, "أسعار المنافسين", "rival", Color(0.46, 0.23, 0.27))
 	_menu_action(action_grid, "حفظ التقدم", "save", Color(0.18, 0.35, 0.31))
 	_menu_action(action_grid, "شرح اللعبة", "help", Color(0.22, 0.30, 0.38))
+
+func _create_supplier_popup() -> void:
+	supplier_overlay = ColorRect.new()
+	supplier_overlay.name = "SupplierShopUI"
+	supplier_overlay.color = Color(0.018, 0.035, 0.048, 0.88)
+	supplier_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	supplier_overlay.visible = false
+	supplier_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	ui_root.add_child(supplier_overlay)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	supplier_overlay.add_child(center)
+	var card := _panel(Color(0.065, 0.15, 0.20, 0.98), 16)
+	card.custom_minimum_size = Vector2(610, 400)
+	center.add_child(card)
+	var vertical := VBoxContainer.new()
+	vertical.add_theme_constant_override("separation", 12)
+	card.add_child(vertical)
+	var title := Label.new()
+	title.text = "المورّد — شراء البضائع بالجملة"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_color_override("font_color", Color(0.98, 0.84, 0.56))
+	title.add_theme_font_size_override("font_size", 27)
+	vertical.add_child(title)
+	supplier_info = Label.new()
+	supplier_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	supplier_info.add_theme_font_size_override("font_size", 20)
+	vertical.add_child(supplier_info)
+	var selection := HBoxContainer.new()
+	selection.alignment = BoxContainer.ALIGNMENT_CENTER
+	vertical.add_child(selection)
+	var back := _button("◀ صنف سابق", Color(0.17, 0.34, 0.39))
+	back.pressed.connect(func() -> void: _choose_product(-1))
+	selection.add_child(back)
+	var forward := _button("الصنف التالي ▶", Color(0.17, 0.34, 0.39))
+	forward.pressed.connect(func() -> void: _choose_product(1))
+	selection.add_child(forward)
+	var qty_row := HBoxContainer.new()
+	qty_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vertical.add_child(qty_row)
+	var qty_text := Label.new()
+	qty_text.text = "عدد القطع:  "
+	qty_row.add_child(qty_text)
+	supplier_qty = SpinBox.new()
+	supplier_qty.min_value = 1
+	supplier_qty.max_value = 20
+	supplier_qty.value = 3
+	supplier_qty.step = 1
+	supplier_qty.custom_minimum_size = Vector2(115, 48)
+	supplier_qty.value_changed.connect(func(_v: float) -> void: _update_hud())
+	qty_row.add_child(supplier_qty)
+	var purchase := _button("تأكيد شراء البضاعة", Color(0.16, 0.44, 0.30))
+	purchase.pressed.connect(func() -> void: _action("purchase_confirm"))
+	vertical.add_child(purchase)
+	supplier_status = Label.new()
+	supplier_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	supplier_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vertical.add_child(supplier_status)
+	var dismiss := _button("العودة إلى المدينة", Color(0.35, 0.27, 0.25))
+	dismiss.pressed.connect(func() -> void: supplier_overlay.visible = false)
+	vertical.add_child(dismiss)
 
 func _menu_action(parent: GridContainer, title: String, action: String, color: Color) -> void:
 	var button := _button(title, color)
@@ -540,10 +608,13 @@ func _update_hud() -> void:
 	var queue_details: String = " | زبائن المحاسبة: %d" % customer_system.waiting_count() if customer_system != null else ""
 	location_info.text = "%s  |  %s%s" % [str(loc_text), economy.objective(), queue_details]
 	var item: Dictionary = economy.product(selected_product)
-	product_info.text = "%s  |  مخزونك: %d\nسعر المورد: %d  |  سعرك: %d  |  سعر المنافس: %d" % [
+	product_info.text = "%s  |  مخزونك: %d\nسعر المورد: %d  |  سعرك: %d  |  سعر المنافس: %d\nالزبون القادم: %s" % [
 		str(item["name"]), economy.stock_for(selected_product), economy.buy_cost(selected_product),
-		economy.selling_price(selected_product), economy.competitor_price(selected_product)
+		economy.selling_price(selected_product), economy.competitor_price(selected_product),
+		customer_system.next_item_name() if customer_system != null else "لا يوجد"
 	]
+	if supplier_info != null and supplier_qty != null:
+		supplier_info.text = "%s   |   سعر القطعة: %d   |   الإجمالي: %d عملة" % [str(item["name"]), economy.buy_cost(selected_product), economy.buy_cost(selected_product) * int(supplier_qty.value)]
 
 func _can_use(at: String) -> bool:
 	return city.nearest_location(avatar.position, 8.5) == at
@@ -564,7 +635,21 @@ func _action(action: String) -> void:
 		"work":
 			message = economy.work_shift() if _can_use("employer") else "اقترب من بسطة صاحب العمل الأزرق."
 		"buy":
-			message = economy.buy_stock(selected_product, 3) if _can_use("supplier") else "اذهب إلى المورد الأخضر في السوق."
+			if _can_use("supplier"):
+				if trading_overlay != null:
+					trading_overlay.visible = false
+				supplier_overlay.visible = true
+				supplier_status.text = "اختر المنتج والكمية ثم أكد الشراء."
+				_update_hud()
+				sound.effect("open")
+				return
+			message = "اقترب من تاجر الجملة الأخضر لفتح قائمة البضائع."
+		"purchase_confirm":
+			if not _can_use("supplier"):
+				message = "ابتعدت عن المورد. اقترب منه قبل الشراء."
+			else:
+				message = economy.buy_stock(selected_product, int(supplier_qty.value))
+			supplier_status.text = message
 		"sell":
 			message = customer_system.checkout() if (_can_use("stall") or _can_use("shop")) else "اقترب من الكاشير في محلك أو من بسطتك."
 		"stall":

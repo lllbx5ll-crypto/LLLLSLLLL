@@ -51,6 +51,8 @@ func _import_licensed_character() -> void:
 	detailed_visual = (scene as PackedScene).instantiate()
 	detailed_visual.name = "HumanCharacter3D"
 	add_child(detailed_visual)
+	# Face away from the chase camera when standing still.
+	detailed_visual.rotation.y = PI
 	preload("res://scripts/ModelFit.gd").person(detailed_visual, 1.76)
 	for part in get_children():
 		if part is MeshInstance3D:
