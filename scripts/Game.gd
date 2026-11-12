@@ -16,6 +16,7 @@ var pop_overlay: ColorRect
 var store_edit: LineEdit
 var road_edit: LineEdit
 var help_overlay: ColorRect
+var trading_overlay: ColorRect
 var selected_product: int = 0
 var direction_keys: Dictionary = {"up": false, "down": false, "left": false, "right": false}
 var notice_duration: float = 0.0
@@ -77,9 +78,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_E:
 			_action("interact")
+		elif event.keycode == KEY_TAB:
+			_action("trade")
 		elif event.keycode == KEY_F5:
 			_action("save")
 		elif event.keycode == KEY_ESCAPE:
+			if trading_overlay != null:
+				trading_overlay.visible = false
 			if pop_overlay != null:
 				pop_overlay.visible = false
 			if help_overlay != null:
@@ -95,113 +100,81 @@ func _create_interface() -> void:
 	ui_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(ui_root)
 	var ui_theme := Theme.new()
-	var arabic := SystemFont.new()
-	arabic.font_names = PackedStringArray(["Noto Naskh Arabic", "Noto Sans Arabic", "DejaVu Sans"])
-	ui_theme.default_font = arabic
-	ui_theme.default_font_size = 22
+	var font_path: String = "res://assets/fonts/NotoNaskhArabic.ttf"
+	if ResourceLoader.exists(font_path):
+		ui_theme.default_font = load(font_path)
+	else:
+		var system_font := SystemFont.new()
+		system_font.font_names = PackedStringArray(["Noto Naskh Arabic", "Noto Sans Arabic", "DejaVu Sans"])
+		ui_theme.default_font = system_font
+	ui_theme.default_font_size = 19
 	ui_root.theme = ui_theme
 
-	# Header strip: player progression.
-	var header := _panel(Color(0.035, 0.095, 0.14, 0.92), 10)
-	header.anchor_left = 0.01
-	header.anchor_right = 0.99
-	header.anchor_top = 0.01
-	header.anchor_bottom = 0.01
-	header.offset_bottom = 112
-	ui_root.add_child(header)
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 3)
-	header.add_child(stack)
+	# Only a slim HUD is visible during free exploration.
+	var top_bar := _panel(Color(0.025, 0.075, 0.11, 0.91), 12)
+	top_bar.anchor_left = 0.012
+	top_bar.anchor_right = 0.985
+	top_bar.anchor_top = 0.008
+	top_bar.anchor_bottom = 0.101
+	ui_root.add_child(top_bar)
+
+	var brand := Label.new()
+	brand.text = "مدينة التجار   •   AL-QMISHI"
+	brand.anchor_left = 0.025
+	brand.anchor_right = 0.32
+	brand.anchor_top = 0.013
+	brand.anchor_bottom = 0.091
+	brand.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	brand.add_theme_font_size_override("font_size", 21)
+	brand.add_theme_color_override("font_color", Color(0.99, 0.82, 0.52))
+	ui_root.add_child(brand)
+
 	hud = Label.new()
-	hud.add_theme_font_size_override("font_size", 23)
-	hud.add_theme_color_override("font_color", Color(1.0, 0.89, 0.61))
-	hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	stack.add_child(hud)
+	hud.anchor_left = 0.33
+	hud.anchor_right = 0.96
+	hud.anchor_top = 0.013
+	hud.anchor_bottom = 0.091
+	hud.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hud.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hud.clip_text = true
+	hud.add_theme_font_size_override("font_size", 21)
+	hud.add_theme_color_override("font_color", Color(0.94, 0.97, 0.98))
+	ui_root.add_child(hud)
+
+	var objective_panel := _panel(Color(0.015, 0.087, 0.12, 0.79), 10)
+	objective_panel.anchor_left = 0.275
+	objective_panel.anchor_right = 0.76
+	objective_panel.anchor_top = 0.125
+	objective_panel.anchor_bottom = 0.20
+	ui_root.add_child(objective_panel)
 	location_info = Label.new()
 	location_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	location_info.add_theme_font_size_override("font_size", 18)
-	location_info.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0))
-	stack.add_child(location_info)
+	location_info.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	location_info.clip_text = true
+	location_info.add_theme_font_size_override("font_size", 17)
+	location_info.add_theme_color_override("font_color", Color(0.95, 0.93, 0.83))
+	objective_panel.add_child(location_info)
 
-	# Street minimap: roads, shops, suppliers, player and current heading.
+	# A small street map in the corner, not a giant gameplay obstruction.
 	var mini_map := preload("res://scripts/Minimap.gd").new()
 	mini_map.name = "StreetMinimap"
 	mini_map.player_ref = avatar
 	mini_map.city_ref = city
-	mini_map.anchor_left = 0.015
-	mini_map.anchor_right = 0.21
-	mini_map.anchor_top = 0.19
-	mini_map.anchor_bottom = 0.51
+	mini_map.anchor_left = 0.815
+	mini_map.anchor_right = 0.98
+	mini_map.anchor_top = 0.15
+	mini_map.anchor_bottom = 0.45
 	ui_root.add_child(mini_map)
 
-	# Product and competitor data.
-	var product_panel := _panel(Color(0.045, 0.12, 0.17, 0.93), 10)
-	product_panel.anchor_left = 0.30
-	product_panel.anchor_right = 0.70
-	product_panel.anchor_top = 0.19
-	product_panel.anchor_bottom = 0.43
-	ui_root.add_child(product_panel)
-	var product_v := VBoxContainer.new()
-	product_panel.add_child(product_v)
-	var selection := HBoxContainer.new()
-	selection.alignment = BoxContainer.ALIGNMENT_CENTER
-	product_v.add_child(selection)
-	var prev := _button("◀ السابق", Color(0.20, 0.33, 0.38))
-	prev.pressed.connect(func() -> void: _choose_product(-1))
-	selection.add_child(prev)
-	var next := _button("التالي ▶", Color(0.20, 0.33, 0.38))
-	next.pressed.connect(func() -> void: _choose_product(1))
-	selection.add_child(next)
-	product_info = Label.new()
-	product_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	product_info.add_theme_font_size_override("font_size", 20)
-	product_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	product_v.add_child(product_info)
-	var prices := HBoxContainer.new()
-	prices.alignment = BoxContainer.ALIGNMENT_CENTER
-	product_v.add_child(prices)
-	var lower := _button("خفض السعر −", Color(0.35, 0.25, 0.16))
-	lower.pressed.connect(func() -> void: _action("price_down"))
-	prices.add_child(lower)
-	var higher := _button("رفع السعر +", Color(0.18, 0.37, 0.29))
-	higher.pressed.connect(func() -> void: _action("price_up"))
-	prices.add_child(higher)
-
-	# Scrollable right-side action buttons.
-	var side_panel := _panel(Color(0.045, 0.11, 0.16, 0.93), 10)
-	side_panel.anchor_left = 0.74
-	side_panel.anchor_right = 0.99
-	side_panel.anchor_top = 0.20
-	side_panel.anchor_bottom = 0.96
-	ui_root.add_child(side_panel)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	side_panel.add_child(scroll)
-	var commands := VBoxContainer.new()
-	commands.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	commands.add_theme_constant_override("separation", 7)
-	scroll.add_child(commands)
-	_add_action(commands, "🤝 اشتغل عند التاجر", "work", Color(0.14, 0.39, 0.53))
-	_add_action(commands, "📦 شراء 3 منتجات", "buy", Color(0.20, 0.38, 0.33))
-	_add_action(commands, "💰 بيع منتج", "sell", Color(0.22, 0.43, 0.32))
-	_add_action(commands, "🛒 شراء بسطة (250)", "stall", Color(0.52, 0.36, 0.15))
-	_add_action(commands, "🏪 فتح محل (1750)", "shop", Color(0.49, 0.32, 0.17))
-	_add_action(commands, "🚚 توصيل طلب", "deliver", Color(0.30, 0.25, 0.48))
-	_add_action(commands, "👷 تعيين عامل (600)", "hire", Color(0.37, 0.30, 0.51))
-	_add_action(commands, "✍ تعديل لوحة المحل", "sign", Color(0.20, 0.42, 0.46))
-	_add_action(commands, "📈 أسعار المنافس", "rival", Color(0.44, 0.24, 0.26))
-	_add_action(commands, "💾 حفظ التقدم", "save", Color(0.22, 0.35, 0.29))
-	_add_action(commands, "❔ شرح اللعبة", "help", Color(0.25, 0.30, 0.40))
-
-	# Direction controls: work on Android and desktop.
+	# The controls fit in the bottom corners. Keep streets and character visible.
 	var directions := GridContainer.new()
 	directions.columns = 3
-	directions.anchor_left = 0.02
-	directions.anchor_right = 0.29
-	directions.anchor_top = 0.65
-	directions.anchor_bottom = 0.97
-	directions.add_theme_constant_override("h_separation", 7)
-	directions.add_theme_constant_override("v_separation", 7)
+	directions.anchor_left = 0.025
+	directions.anchor_right = 0.25
+	directions.anchor_top = 0.645
+	directions.anchor_bottom = 0.965
+	directions.add_theme_constant_override("h_separation", 5)
+	directions.add_theme_constant_override("v_separation", 5)
 	ui_root.add_child(directions)
 	_add_empty_cell(directions)
 	_add_direction(directions, "▲", "up")
@@ -213,29 +186,127 @@ func _create_interface() -> void:
 	_add_direction(directions, "▼", "down")
 	_add_empty_cell(directions)
 
-	var interact := _button("تفاعل  E", Color(0.64, 0.40, 0.16))
-	interact.anchor_left = 0.43
-	interact.anchor_right = 0.60
-	interact.anchor_top = 0.84
-	interact.anchor_bottom = 0.94
+	var interact := _button("تفاعل  E", Color(0.70, 0.46, 0.15))
+	interact.anchor_left = 0.77
+	interact.anchor_right = 0.96
+	interact.anchor_top = 0.79
+	interact.anchor_bottom = 0.87
+	interact.add_theme_font_size_override("font_size", 22)
 	interact.pressed.connect(func() -> void: _action("interact"))
 	ui_root.add_child(interact)
 
-	var message_panel := _panel(Color(0.03, 0.09, 0.13, 0.85), 8)
-	message_panel.anchor_left = 0.29
-	message_panel.anchor_right = 0.72
-	message_panel.anchor_top = 0.64
-	message_panel.anchor_bottom = 0.78
+	var trade := _button("إدارة التجارة  ☰", Color(0.08, 0.29, 0.36))
+	trade.anchor_left = 0.77
+	trade.anchor_right = 0.96
+	trade.anchor_top = 0.885
+	trade.anchor_bottom = 0.965
+	trade.pressed.connect(func() -> void: _action("trade"))
+	ui_root.add_child(trade)
+
+	var message_panel := _panel(Color(0.018, 0.075, 0.105, 0.82), 9)
+	message_panel.anchor_left = 0.285
+	message_panel.anchor_right = 0.735
+	message_panel.anchor_top = 0.86
+	message_panel.anchor_bottom = 0.964
 	ui_root.add_child(message_panel)
 	notice_label = Label.new()
 	notice_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	notice_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	notice_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	notice_label.add_theme_font_size_override("font_size", 19)
+	notice_label.add_theme_font_size_override("font_size", 18)
 	message_panel.add_child(notice_label)
 
+	_create_trade_popup()
 	_create_sign_popup()
 	_create_help_popup()
+
+func _create_trade_popup() -> void:
+	trading_overlay = ColorRect.new()
+	trading_overlay.name = "TradingMenu"
+	trading_overlay.color = Color(0.015, 0.035, 0.045, 0.92)
+	trading_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	trading_overlay.visible = false
+	trading_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	ui_root.add_child(trading_overlay)
+
+	var card := _panel(Color(0.06, 0.16, 0.19, 0.98), 16)
+	card.anchor_left = 0.17
+	card.anchor_right = 0.83
+	card.anchor_top = 0.085
+	card.anchor_bottom = 0.925
+	trading_overlay.add_child(card)
+	var main_v := VBoxContainer.new()
+	main_v.add_theme_constant_override("separation", 10)
+	card.add_child(main_v)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	main_v.add_child(header)
+	var heading := Label.new()
+	heading.text = "إدارة التجارة  |  City Business"
+	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	heading.add_theme_font_size_override("font_size", 25)
+	heading.add_theme_color_override("font_color", Color(0.98, 0.81, 0.48))
+	header.add_child(heading)
+	var close := _button("✕ إغلاق", Color(0.46, 0.24, 0.22))
+	close.pressed.connect(func() -> void: trading_overlay.visible = false)
+	header.add_child(close)
+
+	var controls := HBoxContainer.new()
+	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	main_v.add_child(controls)
+	var previous := _button("◀ السابق", Color(0.16, 0.34, 0.39))
+	previous.pressed.connect(func() -> void: _choose_product(-1))
+	controls.add_child(previous)
+	var next := _button("التالي ▶", Color(0.16, 0.34, 0.39))
+	next.pressed.connect(func() -> void: _choose_product(1))
+	controls.add_child(next)
+
+	product_info = Label.new()
+	product_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	product_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	product_info.add_theme_font_size_override("font_size", 19)
+	product_info.add_theme_color_override("font_color", Color(0.98, 0.97, 0.90))
+	main_v.add_child(product_info)
+
+	var price_tools := HBoxContainer.new()
+	price_tools.alignment = BoxContainer.ALIGNMENT_CENTER
+	main_v.add_child(price_tools)
+	var cheaper := _button("− تخفيض سعر البيع", Color(0.43, 0.32, 0.18))
+	cheaper.pressed.connect(func() -> void: _action("price_down"))
+	price_tools.add_child(cheaper)
+	var higher := _button("+ رفع سعر البيع", Color(0.17, 0.40, 0.30))
+	higher.pressed.connect(func() -> void: _action("price_up"))
+	price_tools.add_child(higher)
+
+	var separator := HSeparator.new()
+	main_v.add_child(separator)
+	var action_scroll := ScrollContainer.new()
+	action_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	main_v.add_child(action_scroll)
+	var action_grid := GridContainer.new()
+	action_grid.columns = 2
+	action_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_grid.add_theme_constant_override("h_separation", 10)
+	action_grid.add_theme_constant_override("v_separation", 10)
+	action_scroll.add_child(action_grid)
+	_menu_action(action_grid, "العمل لدى التاجر", "work", Color(0.15, 0.36, 0.46))
+	_menu_action(action_grid, "شراء ٣ منتجات", "buy", Color(0.13, 0.35, 0.29))
+	_menu_action(action_grid, "بيع منتج", "sell", Color(0.15, 0.44, 0.29))
+	_menu_action(action_grid, "شراء بسطة: 250", "stall", Color(0.46, 0.32, 0.15))
+	_menu_action(action_grid, "فتح محل: 1750", "shop", Color(0.46, 0.27, 0.17))
+	_menu_action(action_grid, "توصيل الطلبات", "deliver", Color(0.31, 0.26, 0.43))
+	_menu_action(action_grid, "توظيف عامل: 600", "hire", Color(0.27, 0.29, 0.44))
+	_menu_action(action_grid, "تعديل لوحة المحل", "sign", Color(0.20, 0.39, 0.43))
+	_menu_action(action_grid, "أسعار المنافسين", "rival", Color(0.46, 0.23, 0.27))
+	_menu_action(action_grid, "حفظ التقدم", "save", Color(0.18, 0.35, 0.31))
+	_menu_action(action_grid, "شرح اللعبة", "help", Color(0.22, 0.30, 0.38))
+
+func _menu_action(parent: GridContainer, title: String, action: String, color: Color) -> void:
+	var button := _button(title, color)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.pressed.connect(func() -> void: _action(action))
+	parent.add_child(button)
 
 func _panel(bg: Color, corner: int = 12) -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -397,7 +468,7 @@ func _announce(message: String) -> void:
 func _update_hud() -> void:
 	if hud == null:
 		return
-	hud.text = "مدينة التجار  |  %s  |  المال: %d  |  السمعة: %d  |  اليوم: %d" % [economy.stage_name(), economy.money, economy.reputation, economy.day]
+	hud.text = "%s     ◈  %d عملة     ★  %d     ☀  اليوم %d" % [economy.stage_name(), economy.money, economy.reputation, economy.day]
 	var loc: String = city.nearest_location(avatar.position, 9.5)
 	var loc_text: String = city.LOCATION_LABELS.get(loc, "استكشف المدينة")
 	location_info.text = "%s  |  %s" % [str(loc_text), economy.objective()]
@@ -419,6 +490,10 @@ func _do_economic_result(message: String) -> void:
 func _action(action: String) -> void:
 	var message: String = ""
 	match action:
+		"trade":
+			trading_overlay.visible = not trading_overlay.visible
+			sound.effect("open")
+			return
 		"work":
 			message = economy.work_shift() if _can_use("employer") else "اقترب من بسطة صاحب العمل الأزرق."
 		"buy":
