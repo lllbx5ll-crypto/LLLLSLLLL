@@ -69,6 +69,7 @@ jobs:
         run: |
           godot --headless --path . --editor --quit
           godot --headless --path . --script tests/smoke_test.gd
+          godot --headless --path . --script tests/world_smoke.gd
 
       - name: Set Godot Android paths
         run: |
